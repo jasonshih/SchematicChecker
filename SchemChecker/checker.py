@@ -15,19 +15,15 @@ if __name__ == "__main__":
     for row in ws.rows:
         for cell in row:
             if "COMP:" in str(cell.value):
-                comp_header = str(cell.value).replace('\'', '').split(' ')
+                ch = str(cell.value).replace('\'', '').split(' ')
 
-                oo = sc.SchematicComponent()
+                if len(ch) == 3:
+                    oo = sc.SchematicComponent()
+                    [_, oo.type, oo.id] = ch
+                    cc = oo.id
 
-                oo.id = comp_header[2]
-                oo.type = comp_header[1]
-
-                cc = comp_header[2]
-
-                COMP_DICT.update({oo.id:oo})
-
-                print(comp_header)
-                pass
+                    COMP_DICT.update({oo.id:oo})
+                    print(ch)
 
             if "Property:" in str(cell.value):
                 pass
@@ -35,11 +31,18 @@ if __name__ == "__main__":
 
             if "Explicit Pin:" in str(cell.value):
                 ep = str(cell.value).strip().replace('\'','').split(' ')
-                COMP_DICT[cc].pins.update({(ep[2], ep[3]):ep[4]})
-                NETS_DICT.update({ep[4]:{cc:COMP_DICT[cc].id}})
 
-                pass
-                # print(cell.value)
+                if len(ep) == 5:
+                    [_, _, pin_num, pin_name, nets] = ep
+
+                    COMP_DICT[cc].pins.update({(pin_num, pin_name):nets})
+
+
+                    if nets in NETS_DICT.keys():
+                        NETS_DICT[nets].append((cc, pin_num, pin_name))
+                    else:
+                        NETS_DICT.update({nets:[(cc, pin_num, pin_name)]})
+                    # print(cell.value)
 
     pass
 
