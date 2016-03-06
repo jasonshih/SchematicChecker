@@ -1,5 +1,41 @@
 import SchemChecker.SchemComponent as sc
-from openpyxl import Workbook, load_workbook
+from openpyxl import load_workbook
+
+
+class PathFinder(object):
+
+    def __init__(self, sym_dict, nets_dict, comp_dict):
+        self.SYMBOL_DICT = sym_dict
+        self.NETS_DICT = nets_dict
+        self.COMP_DICT = comp_dict
+        self.seen = []
+        pass
+
+    def find_path(self, symbol, pin_num_and_name):
+        (pin_num, pin_name) = pin_num_and_name
+        self.seen.append((symbol, pin_num, pin_name))
+
+        nets = self.SYMBOL_DICT[symbol].pins[pin_num_and_name]     #S0_GPIO6
+        ports_at_nets = self.NETS_DICT[nets]                       #[('X0', '90', 'GPIO6'), ('R43A', '1', 'POS')]
+        filtered_ports = self.remove_previous_ports(ports_at_nets, self.seen)    #[('R43A', '1', 'POS')]
+        processed_ports = self.process_ports(filtered_ports)                #[('R43A', '2', 'NEG')]
+
+    def remove_previous_ports(self, ports, seen):
+        return [x for x in ports if x not in seen]
+
+    def process_ports(self, ports):
+
+        all_linked_ports = []
+        for each_port in ports:
+            (symbol, port_num, port_name) = each_port
+
+            # states = self.SYMBOL_DICT[symbol].links.keys()
+
+            linked_ports = self.SYMBOL_DICT[symbol].links['passive'][(port_num, port_name)]
+            linked_ports = [(symbol, x, y) for (x, y) in linked_ports]
+            all_linked_ports.extend(linked_ports)
+
+        return all_linked_ports
 
 
 def populate_component():
@@ -12,36 +48,36 @@ def populate_component():
 
     # 8-pins RELAY
     COMP_DICT['300-23460-0237'].links.update({
-        'off':{('1', 'N1'):[('8', 'N2')],
-               ('2', 'S1'):[('3', 'COM1')],
-               ('3', 'COM1'):[('2', 'S1')],
-               ('4', 'S2'):[],
-               ('5', 'S4'):[],
-               ('6', 'COM2'):[('7', 'S3')],
-               ('7', 'S3'):[('6', 'COM2')],
-               ('8', 'N2'):[('1', 'N1')]}
-    })
+        'off': {('1', 'N1'): [('8', 'N2')],
+                ('2', 'S1'): [('3', 'COM1')],
+                ('3', 'COM1'): [('2', 'S1')],
+                ('4', 'S2'): [],
+                ('5', 'S4'): [],
+                ('6', 'COM2'): [('7', 'S3')],
+                ('7', 'S3'): [('6', 'COM2')],
+                ('8', 'N2'): [('1', 'N1')]}
+        })
     COMP_DICT['300-23460-0237'].links.update({
-        'on':{('1', 'N1'):[('8', 'N2')],
-              ('2', 'S1'):[],
-              ('3', 'COM1'):[('4', 'S2')],
-              ('4', 'S2'):[('3', 'COM1')],
-              ('5', 'S4'):[('6', 'COM2')],
-              ('6', 'COM2'):[('5', 'S4')],
-              ('7', 'S3'):[],
-              ('8', 'N2'):[('1', 'N1')]}
-    })
+        'on': {('1', 'N1'): [('8', 'N2')],
+               ('2', 'S1'): [],
+               ('3', 'COM1'): [('4', 'S2')],
+               ('4', 'S2'): [('3', 'COM1')],
+               ('5', 'S4'): [('6', 'COM2')],
+               ('6', 'COM2'): [('5', 'S4')],
+               ('7', 'S3'): [],
+               ('8', 'N2'): [('1', 'N1')]}
+        })
 
     # 2-pins RESISTOR
     COMP_DICT['100-46302-2491'].links.update({
-        'passive':{('1', 'POS'):[('2', 'NEG')],
-                   ('2', 'NEG'):[('1', 'POS')]}
+        'passive': {('1', 'POS'): [('2', 'NEG')],
+                    ('2', 'NEG'): [('1', 'POS')]}
     })
 
     # jumper
     COMP_DICT['EMBEDDED_SHORTING_BAR'].links.update({
-        'passive':{('1', 'IO1'):[('2', 'IO2')],
-                   ('2', 'IO2'):[('1', 'IO1')]}
+        'passive': {('1', 'IO1'): [('2', 'IO2')],
+                    ('2', 'IO2'): [('1', 'IO1')]}
     })
 
     return COMP_DICT
@@ -72,7 +108,7 @@ if __name__ == "__main__":
                     else:
                         oo.links = {}
 
-                    SYMBOL_DICT.update({oo.id:oo})
+                    SYMBOL_DICT.update({oo.id: oo})
 
                     cc = oo.id
                     print(ch)
@@ -82,19 +118,22 @@ if __name__ == "__main__":
                 # print(cell.value)
 
             if "Explicit Pin:" in str(cell.value):
-                ep = str(cell.value).strip().replace('\'','').split(' ')
+                ep = str(cell.value).strip().replace('\'', '').split(' ')
 
                 if len(ep) == 5:
                     [_, _, pin_num, pin_name, nets] = ep
 
-                    SYMBOL_DICT[cc].pins.update({(pin_num, pin_name):nets})
+                    SYMBOL_DICT[cc].pins.update({(pin_num, pin_name): nets})
 
                     if nets in NETS_DICT.keys():
                         NETS_DICT[nets].append((cc, pin_num, pin_name))
                     else:
-                        NETS_DICT.update({nets:[(cc, pin_num, pin_name)]})
+                        NETS_DICT.update({nets: [(cc, pin_num, pin_name)]})
                     # print(cell.value)
 
+    pf = PathFinder(SYMBOL_DICT, NETS_DICT, COMP_DICT)
+
+    pf.find_path('X0', ('90', 'GPIO6'))
     pass
 
 '''

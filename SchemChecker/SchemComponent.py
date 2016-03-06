@@ -10,7 +10,7 @@ class SchematicComponent(object):
 class SchematicSymbol(SchematicComponent):
 
     def __init__(self):
-        SchematicComponent.__init__()
+        SchematicComponent.__init__(self)
         self.id = ''
         self.state = []
         # self.type = ''
