@@ -6,22 +6,42 @@ def populate_component():
 
     COMP_DICT = {
         '300-23460-0237': sc.SchematicComponent(),
-        '100-46302-2491': sc.SchematicComponent()
+        '100-46302-2491': sc.SchematicComponent(),
+        'EMBEDDED_SHORTING_BAR': sc.SchematicComponent()
     }
 
     # 8-pins RELAY
     COMP_DICT['300-23460-0237'].links.update({
-        'off':[(('3' 'COM1'), ('2' 'S1')),
-              (('6' 'COM2'), ('7' 'S3'))]
+        'off':{('1', 'N1'):[('8', 'N2')],
+               ('2', 'S1'):[('3', 'COM1')],
+               ('3', 'COM1'):[('2', 'S1')],
+               ('4', 'S2'):[],
+               ('5', 'S4'):[],
+               ('6', 'COM2'):[('7', 'S3')],
+               ('7', 'S3'):[('6', 'COM2')],
+               ('8', 'N2'):[('1', 'N1')]}
     })
     COMP_DICT['300-23460-0237'].links.update({
-        'on':[(('3' 'COM1'), ('4' 'S2')),
-               (('6' 'COM2'), ('5' 'S4'))]
+        'on':{('1', 'N1'):[('8', 'N2')],
+              ('2', 'S1'):[],
+              ('3', 'COM1'):[('4', 'S2')],
+              ('4', 'S2'):[('3', 'COM1')],
+              ('5', 'S4'):[('6', 'COM2')],
+              ('6', 'COM2'):[('5', 'S4')],
+              ('7', 'S3'):[],
+              ('8', 'N2'):[('1', 'N1')]}
     })
 
     # 2-pins RESISTOR
     COMP_DICT['100-46302-2491'].links.update({
-        'passive':[(('1' 'POS'), ('2' 'NEG'))]
+        'passive':{('1', 'POS'):[('2', 'NEG')],
+                   ('2', 'NEG'):[('1', 'POS')]}
+    })
+
+    # jumper
+    COMP_DICT['EMBEDDED_SHORTING_BAR'].links.update({
+        'passive':{('1', 'IO1'):[('2', 'IO2')],
+                   ('2', 'IO2'):[('1', 'IO1')]}
     })
 
     return COMP_DICT
@@ -92,25 +112,39 @@ if __name__ == "__main__":
     ==============================================================================================================
     SYMBOL_DICT['X0'].pins['143', 'GPIO7']      #S0_GPIO7
     NETS_DICT['S0_GPIO7']                       #[('X0', '143', 'GPIO7'), ('K1A', '3', 'COM1')]
-    --> [('K1A', '3', 'COM1')]
-    --> [('K1A', '2', 'S1'), ('K1A', '4', 'S2')]
+    remove_prev_ports() --> [('K1A', '3', 'COM1')]
+    process_ports() --> [('K1A', '2', 'S1'), ('K1A', '4', 'S2')]
+    seen_ports --> [('X0', '143', 'GPIO7'), ('K1A', '3', 'COM1'),
+                    ('K1A', '2', 'S1'), ('K1A', '4', 'S2')]
 
         SYMBOL_DICT['K1A'].pins['2', 'S1']          #J16_HSD_157
         NETS_DICT['J16_HSD_157']                    #[('K1A', '2', 'S1'), ('J6', 'R10', 'IO67')]
-        --> [('J6', 'R10', 'IO67')]
+        remove_prev_ports()--> [('J6', 'R10', 'IO67')]
         --> [done]
+        seen_ports --> [('X0', '143', 'GPIO7'), ('K1A', '3', 'COM1'),
+                        ('K1A', '2', 'S1'), ('J6', 'R10', 'IO67')]
+
         PATH: ['S0_GPIO7', 'J16_HSD_157']
 
 
         SYMBOL_DICT['K1A'].pins['4', 'S2']          #$5N2423_110
         NETS_DICT['$5N2423_110']                    #[('K1A', '4', 'S2'), ('R121A', '2', 'NEG')]
-        --> [('R121A', '2', 'NEG')]
+        remove_prev_ports() --> [('R121A', '2', 'NEG')]
         --> [('R121A', '1', 'POS')]
+        seen_ports --> [('X0', '143', 'GPIO7'), ('K1A', '3', 'COM1'),
+                        ('K1A', '4', 'S2'), ('R121A', '2', 'NEG'),
+                        ('R121A', '1', 'POS')]
 
             SYMBOL_DICT['R121A'].pins['1', 'POS']       #S0_UVI80_GPIO7
             NETS_DICT['S0_UVI80_GPIO7']                 #[('K92', '7', 'S3'), ('K92', '2', 'S1'), ('R121A', '1', 'POS')]
             --> [('K92', '7', 'S3'), ('K92', '2', 'S1')]
             --> [('K92', '6', 'COM2'), ('K92', '3', 'COM1')]
+            seen_ports --> [('X0', '143', 'GPIO7'), ('K1A', '3', 'COM1'),
+                            ('K1A', '4', 'S2'), ('R121A', '2', 'NEG'),
+                            ('R121A', '1', 'POS'),
+                            ('K92', '7', 'S3'), ('K92', '2', 'S1'), ('R121A', '1', 'POS'),
+                            ('K92', '6', 'COM2'), ('K92', '3', 'COM1')]
+
 
                 SYMBOL_DICT['K92'].pins['6', 'COM2']        #J20_UVI80_4F
                 NETS_DICT['J20_UVI80_4F']                   #[('K92', '6', 'COM2'),
