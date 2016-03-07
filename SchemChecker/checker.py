@@ -4,12 +4,11 @@ from openpyxl import load_workbook
 
 class PathFinder(object):
 
-    def __init__(self, sym_dict, nets_dict, comp_dict):
-        self.SYMBOL_DICT = sym_dict
-        self.NETS_DICT = nets_dict
-        self.COMP_DICT = comp_dict
+    def __init__(self):
+        self.SYMBOL_DICT = {}
+        self.NETS_DICT = {}
+        self.COMP_DICT = {}
         self.seen = []
-        pass
 
     def populate_dictionaries(self, file_name):
         wb = load_workbook(file_name)
@@ -29,7 +28,7 @@ class PathFinder(object):
                         oo = sc.SchematicSymbol()
                         [_, oo.type, oo.id] = ch
 
-                        if oo.type in COMP_DICT.keys():
+                        if oo.type in self.COMP_DICT.keys():
                             oo.links = self.COMP_DICT[oo.type].links
                         else:
                             oo.links = {}
@@ -126,8 +125,6 @@ class PathFinder(object):
         else:
             pass
             #freeze this path
-
-
         pass
 
     def remove_previous_ports(self, ports, seen=None):
@@ -207,9 +204,9 @@ if __name__ == "__main__":
     #
     # ws = wb.get_active_sheet()
     #
-    SYMBOL_DICT = {}
-    NETS_DICT = {}
-    COMP_DICT = populate_component()
+    # SYMBOL_DICT = {}
+    # NETS_DICT = {}
+    # COMP_DICT = populate_component()
     # cc = ''
     #
     # for row in ws.rows:
@@ -250,7 +247,7 @@ if __name__ == "__main__":
     #                 # print(cell.value)
 
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
-    pf = PathFinder(SYMBOL_DICT, NETS_DICT, COMP_DICT)
+    pf = PathFinder()
     pf.populate_dictionaries(xlsx_file)
     pf.find_path('X0', ('90', 'GPIO6'))
     pass
