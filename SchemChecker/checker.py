@@ -9,6 +9,7 @@ class PathFinder(object):
         self.NETS_DICT = {}
         self.COMP_DICT = {}
         self.seen = []
+        self.tab = ''
 
     def populate_dictionaries(self, file_name):
         wb = load_workbook(file_name)
@@ -58,6 +59,7 @@ class PathFinder(object):
             '300-23460-0237': sc.SchematicComponent(),
             '100-46302-2491': sc.SchematicComponent(),
             '100-46312-0000': sc.SchematicComponent(),
+            '100-46302-9093': sc.SchematicComponent(),
             'EMBEDDED_SHORTING_BAR': sc.SchematicComponent()
         }
 
@@ -93,6 +95,13 @@ class PathFinder(object):
             'passive': {('1', 'POS'): [('2', 'NEG')],
                         ('2', 'NEG'): [('1', 'POS')]}
         })
+
+        comp_dict['100-46302-9093'].links.update({
+            'passive': {('1', 'POS'): [('2', 'NEG')],
+                        ('2', 'NEG'): [('1', 'POS')]}
+        })
+
+
         # jumper
         comp_dict['EMBEDDED_SHORTING_BAR'].links.update({
             'passive': {('1', 'IO1'): [('2', 'IO2')],
@@ -101,31 +110,41 @@ class PathFinder(object):
 
         return comp_dict
 
-    def find_path(self, symbol, pin_num_and_name, state=None, path=None):
+    def find_path(self, symbol, pin_num, pin_name, path=None):
         if path is None:
             path = []
 
-        if state is None:
-            state = 'passive'
-
-        (pin_num, pin_name) = pin_num_and_name
         self.seen.append((symbol, pin_num, pin_name))
 
-        nets = self.SYMBOL_DICT[symbol].pins[pin_num_and_name]                  #S0_GPIO6
-        ports_at_nets = self.NETS_DICT[nets]                                    #[('X0', '90', 'GPIO6'),
-                                                                                # ('R43A', '1', 'POS')]
-        filtered_ports = self.remove_previous_ports(ports_at_nets, self.seen)   #[('R43A', '1', 'POS')]
-        processed_ports = self.process_ports(filtered_ports)                    #[('R43A', '2', 'NEG')]
-
+        # PROCESS FOR THIS ITERATION
+        nets = self.SYMBOL_DICT[symbol].pins[(pin_num, pin_name)]
         path.append(nets)
 
+        if nets == 'unconnected':
+            ports_at_nets = []
+        else:
+            ports_at_nets = [x for x in self.NETS_DICT[nets] if x != (symbol, pin_num, pin_name)]
+
+        # PRINT OUT FOR DEBUG
+        starting_symbol_string = ' ' + '|'.join([symbol, pin_num, pin_name])
+        final_symbol_string = ' & '.join(['%s|%s|%s' % (x,y,z) for x,y,z in ports_at_nets])
+        sep = ' --> '
+        print (self.tab + starting_symbol_string + sep + nets + sep + final_symbol_string)
+
+        # PROCESS FOR THE NEXT ITERATION
+        filtered_ports = self.remove_previous_ports(ports_at_nets, self.seen)
+        processed_ports = self.process_ports(filtered_ports)
+        self.seen.extend([(x, y, z) for (x, _, y, z) in processed_ports])
+
         if processed_ports:
-            for (symbol, _, pin_num, pin_name) in processed_ports:
-                self.find_path(symbol, (pin_num, pin_name), path=path)
+            self.tab = self.tab + '--'
+            for (x, _, y, z) in processed_ports:
+                self.find_path(x, y, z, path=path)
+            self.tab = self.tab[:-2]
         else:
             pass
-            #freeze this path
-        pass
+
+        # return path
 
     def remove_previous_ports(self, ports, seen=None):
         if seen is None:
@@ -147,13 +166,37 @@ class PathFinder(object):
 
         return all_linked_ports
 
+    def clear_found_ports(self):
+        self.seen = []
 
 if __name__ == "__main__":
 
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     pf = PathFinder()
     pf.populate_dictionaries(xlsx_file)
-    pf.find_path('X0', ('90', 'GPIO6'))
+    print ('=' * 80)
+    pf.clear_found_ports()
+    pf.find_path('X0', '90', 'GPIO6')
+
+    print ('=' * 80)
+    pf.clear_found_ports()
+    pf.find_path('X0', '143', 'GPIO7')
+
+    print ('=' * 80)
+    pf.clear_found_ports()
+    pf.find_path('X0', '110', 'MPP3')
+
+    print ('=' * 80)
+    pf.clear_found_ports()
+    pf.find_path('X2', '110', 'MPP3')
+
+    print ('=' * 80)
+    pf.clear_found_ports()
+    pf.find_path('J6', 'T8', 'IO85')
+
+    print ('=' * 80)
+    pf.clear_found_ports()
+    pf.find_path('J6', 'A15', 'IO8')
     pass
 
 '''
