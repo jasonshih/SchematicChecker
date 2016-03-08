@@ -138,14 +138,15 @@ if __name__ == "__main__":
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     pf = PathFinder()
     pf.populate_dictionaries(xlsx_file)
+
     # print('=' * 80)
     # pf.clear_found_ports()
     # pf.find_path('X0', '90', 'GPIO6')
-    #
+
     print('=' * 80)
     pf.clear_found_ports()
     pf.find_path('X0', '143', 'GPIO7')
-    #
+
     # print('=' * 80)
     # pf.clear_found_ports()
     # pf.find_path('X0', '110', 'MPP3')
@@ -162,82 +163,3 @@ if __name__ == "__main__":
     pf.clear_found_ports()
     pf.find_path('J6', 'A15', 'IO8')
     pass
-
-'''
-    SYMBOL_DICT['X0'].pins[('90', 'GPIO6')]     #S0_GPIO6
-    NETS_DICT['S0_GPIO6']                       #[('X0', '90', 'GPIO6'), ('R43A', '1', 'POS')]
-    --> [('R43A', '1', 'POS')]
-    --> [('R43A', 'passive', '2', 'NEG')]
-
-        SYMBOL_DICT['R43A'].pins[('2', 'NEG')]      #J16_HSD_156
-        NETS_DICT['J16_HSD_156']                    #[('J6', 'R12', 'IO68'), ('R43A', '2', 'NEG')]
-        --> [('J6', 'R12', 'IO68')]
-        --> [done]
-        PATH: ['S0_GPIO6', 'J16_HSD_156']
-
-    ==============================================================================================================
-    SYMBOL_DICT['X0'].pins['143', 'GPIO7']      #S0_GPIO7
-    NETS_DICT['S0_GPIO7']                       #[('X0', '143', 'GPIO7'), ('K1A', '3', 'COM1')]
-    remove_prev_ports() --> [('K1A', '3', 'COM1')]
-    process_ports() --> [('K1A', '2', 'S1'), ('K1A', '4', 'S2')]
-    seen_ports --> [('X0', '143', 'GPIO7'), ('K1A', '3', 'COM1'),
-                    ('K1A', '2', 'S1'), ('K1A', '4', 'S2')]
-
-        SYMBOL_DICT['K1A'].pins['2', 'S1']          #J16_HSD_157
-        NETS_DICT['J16_HSD_157']                    #[('K1A', '2', 'S1'), ('J6', 'R10', 'IO67')]
-        remove_prev_ports()--> [('J6', 'R10', 'IO67')]
-        --> [done]
-        seen_ports --> [('X0', '143', 'GPIO7'), ('K1A', '3', 'COM1'),
-                        ('K1A', '2', 'S1'), ('J6', 'R10', 'IO67')]
-
-        PATH: ['S0_GPIO7', 'J16_HSD_157']
-
-
-        SYMBOL_DICT['K1A'].pins['4', 'S2']          #$5N2423_110
-        NETS_DICT['$5N2423_110']                    #[('K1A', '4', 'S2'), ('R121A', '2', 'NEG')]
-        remove_prev_ports() --> [('R121A', '2', 'NEG')]
-        --> [('R121A', '1', 'POS')]
-        seen_ports --> [('X0', '143', 'GPIO7'), ('K1A', '3', 'COM1'),
-                        ('K1A', '4', 'S2'), ('R121A', '2', 'NEG'),
-                        ('R121A', '1', 'POS')]
-
-            SYMBOL_DICT['R121A'].pins['1', 'POS']       #S0_UVI80_GPIO7
-            NETS_DICT['S0_UVI80_GPIO7']                 #[('K92', '7', 'S3'), ('K92', '2', 'S1'), ('R121A', '1', 'POS')]
-            --> [('K92', '7', 'S3'), ('K92', '2', 'S1')]
-            --> [('K92', '6', 'COM2'), ('K92', '3', 'COM1')]
-            seen_ports --> [('X0', '143', 'GPIO7'), ('K1A', '3', 'COM1'),
-                            ('K1A', '4', 'S2'), ('R121A', '2', 'NEG'),
-                            ('R121A', '1', 'POS'),
-                            ('K92', '7', 'S3'), ('K92', '2', 'S1'), ('R121A', '1', 'POS'),
-                            ('K92', '6', 'COM2'), ('K92', '3', 'COM1')]
-
-
-                SYMBOL_DICT['K92'].pins['6', 'COM2']        #J20_UVI80_4F
-                NETS_DICT['J20_UVI80_4F']                   #[('K92', '6', 'COM2'),
-                                                             ('K92', '3', 'COM1'),
-                                                             ('JP601', '2', 'IO2'),
-                                                             ('J6', 'A15', 'IO8'),
-                                                             ('J6', 'A13', 'IO7')]
-
-                -->[('JP601', '2', 'IO2'), ('J6', 'A15', 'IO8'), ('J6', 'A13', 'IO7')]
-                -->[('JP601', '1', 'IO1'), done, done]
-                PATH: ['S0_GPIO7', '$5N2423_110', 'S0_UVI80_GPIO7', 'J20_UVI80_4F' ]
-
-                    SYMBOL_DICT['JP601'].pins['1', 'IO1']       #J20_UVI80_4S
-                    NETS_DICT['J20_UVI80_4S']                   #[('JP601', '1', 'IO1'), ('J6', 'B14', 'IO17')]
-                    --> [('J6', 'B14', 'IO17')]
-                    --> [done]
-                    PATH: ['S0_GPIO7', '$5N2423_110', 'S0_UVI80_GPIO7', 'J20_UVI80_4F', 'J20_UVI80_4S' ]
-
-                SYMBOL_DICT['K92'].pins['3', 'COM1']        #J20_UVI80_4F
-                NETS_DICT['J20_UVI80_4F']                   #[('K92', '6', 'COM2'),
-                                                             ('K92', '3', 'COM1'),
-                                                             ('JP601', '2', 'IO2'),
-                                                             ('J6', 'A15', 'IO8'),
-                                                             ('J6', 'A13', 'IO7')]
-                --> []
-                --> loop
-
-
-
-'''
