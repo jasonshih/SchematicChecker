@@ -17,7 +17,7 @@ class PathFinder(object):
 
         self.SYMBOL_DICT = {}
         self.NETS_DICT = {}
-        self.COMP_DICT = self.populate_component()
+        # self.COMP_DICT = self.populate_component()
         cc = ''
 
         for row in ws.rows:
@@ -26,18 +26,31 @@ class PathFinder(object):
                     ch = str(cell.value).replace('\'', '').split(' ')
 
                     if len(ch) == 3:
-                        oo = sc.SchematicSymbol()
+
+                        if ch[1].startswith('10'):
+                            oo = sc.SchematicSymbol('std_2pins_passive')
+
+                        elif ch[1].startswith('300-23460'):
+                            oo = sc.SchematicSymbol('std_8pins_relay')
+
+                        elif ch[1].startswith('EMBEDDED_SHORTING_BAR'):
+                            oo = sc.SchematicComponent('std_shorting_bar')
+
+                        else:
+                            oo = sc.SchematicComponent()
+                            print('unknown part type: ' + ch[1])
+
                         [_, oo.type, oo.id] = ch
 
-                        if oo.type in self.COMP_DICT.keys():
-                            oo.links = self.COMP_DICT[oo.type].links
-                        else:
-                            oo.links = {}
+                        # if oo.type in self.COMP_DICT.keys():
+                        #     oo.links = self.COMP_DICT[oo.type].links
+                        # else:
+                        #     oo.links = {}
 
                         self.SYMBOL_DICT.update({oo.id: oo})
 
                         cc = oo.id
-                        print(ch)
+                        # print(ch)
 
                 if "Property:" in str(cell.value):
                     pass
@@ -81,7 +94,7 @@ class PathFinder(object):
         self.seen.append((symbol, pin_num, pin_name))
         nets = self.SYMBOL_DICT[symbol].pins[(pin_num, pin_name)]
 
-        if nets == 'unconnected':
+        if nets in ['unconnected', 'AGND', '+5V']:
             ports_at_nets = []
         else:
             ports_at_nets = [x for x in self.NETS_DICT[nets] if x != (symbol, pin_num, pin_name)]
@@ -124,6 +137,7 @@ class PathFinder(object):
             states = self.SYMBOL_DICT[symbol].links.keys()
 
             for state in states:
+                # print(str(state) + ' ' + str(each_port))
                 linked_ports = self.SYMBOL_DICT[symbol].links[state][(port_num, port_name)]
                 linked_ports = [(symbol, state, x, y) for (x, y) in linked_ports]
                 all_linked_ports.extend(linked_ports)

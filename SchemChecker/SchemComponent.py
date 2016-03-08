@@ -47,12 +47,7 @@ class SchematicComponent(object):
 
 class SchematicSymbol(SchematicComponent):
 
-    def __init__(self):
-        SchematicComponent.__init__(self)
+    def __init__(self, standard_type=None):
+        SchematicComponent.__init__(self, standard_type)
         self.id = ''
         self.state = []
-        # self.type = ''
-        # self.pins = {}
-        # self.links = {}
-
-
