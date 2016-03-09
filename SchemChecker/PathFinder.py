@@ -85,25 +85,24 @@ class PathFinder(object):
     def find_path(self, symbol, pin_num, pin_name, state='init', level=0):
 
         # PROCESS FOR THIS ITERATION
-        self.seen.append((symbol, pin_num, pin_name))
+        symbol_and_pin = (symbol, pin_num, pin_name)
+        self.seen.append(symbol_and_pin)
         nets = self.SYMBOL_DICT[symbol].pins[(pin_num, pin_name)]
-
-        if nets in ['unconnected', 'AGND', '+5V', '-5V']:
-            ports_at_nets = []
-        else:
-            ports_at_nets = [x for x in self.NETS_DICT[nets] if x != (symbol, pin_num, pin_name)]
+        ports_at_nets = self.process_nets(nets, symbol_and_pin)
 
         # PRINT OUT FOR DEBUG
-        sep = ' --> '
+        sep = ' >>> '
         starting_symbol_string = ' ' + '|'.join([symbol, state, pin_num, pin_name])
         final_symbol_string = ' & '.join(['|'.join([x, y, z]) for x, y, z in ports_at_nets])
         path_string = starting_symbol_string + sep + nets + sep + final_symbol_string
         print('--' * level + path_string)
+
+        # RECORD PATH
         self.path.append(path_string)
 
         # PROCESS FOR THE NEXT ITERATION
-        filtered_ports = self.remove_previous_ports(ports_at_nets, self.seen)
-        processed_ports = self.process_ports(filtered_ports)
+        filtered_ports = self.remove_previous_ports(ports_at_nets, self.seen) #A,B,C --> A,B
+        processed_ports = self.process_ports(filtered_ports) #A,B --> C,D
         self.seen.extend([(x, y, z) for (x, _, y, z) in processed_ports])
 
         if processed_ports:
@@ -114,7 +113,7 @@ class PathFinder(object):
         else:
             pass
 
-        # return path
+        return True
 
     @staticmethod
     def remove_previous_ports(ports, seen=None):
@@ -123,6 +122,12 @@ class PathFinder(object):
 
         # print (str([x for x in ports if x in seen]))
         return [x for x in ports if x not in seen]
+
+    def process_nets(self, nets, symbol_and_pin):
+        if nets in ['unconnected', 'AGND', '+5V', '-5V']:
+            return []
+        else:
+            return [x for x in self.NETS_DICT[nets] if x != symbol_and_pin]
 
     def process_ports(self, ports):
 
