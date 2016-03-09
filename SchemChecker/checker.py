@@ -9,6 +9,7 @@ class PathFinder(object):
         self.NETS_DICT = {}
         self.COMP_DICT = {}
         self.seen = []
+        self.path = []
         self.tab = ''
 
     def populate_dictionaries(self, file_name):
@@ -41,12 +42,6 @@ class PathFinder(object):
                             print('unknown part type: ' + ch[1])
 
                         [_, oo.type, oo.id] = ch
-
-                        # if oo.type in self.COMP_DICT.keys():
-                        #     oo.links = self.COMP_DICT[oo.type].links
-                        # else:
-                        #     oo.links = {}
-
                         self.SYMBOL_DICT.update({oo.id: oo})
 
                         cc = oo.id
@@ -88,22 +83,24 @@ class PathFinder(object):
 
         return comp_dict
 
-    def find_path(self, symbol, pin_num, pin_name, state='init'):
+    def find_path(self, symbol, pin_num, pin_name, state='init', level=0):
 
         # PROCESS FOR THIS ITERATION
         self.seen.append((symbol, pin_num, pin_name))
         nets = self.SYMBOL_DICT[symbol].pins[(pin_num, pin_name)]
 
-        if nets in ['unconnected', 'AGND', '+5V']:
+        if nets in ['unconnected', 'AGND', '+5V', '-5V']:
             ports_at_nets = []
         else:
             ports_at_nets = [x for x in self.NETS_DICT[nets] if x != (symbol, pin_num, pin_name)]
 
         # PRINT OUT FOR DEBUG
+        sep = ' --> '
         starting_symbol_string = ' ' + '|'.join([symbol, state, pin_num, pin_name])
         final_symbol_string = ' & '.join(['|'.join([x, y, z]) for x, y, z in ports_at_nets])
-        sep = ' --> '
-        print(self.tab + starting_symbol_string + sep + nets + sep + final_symbol_string)
+        path_string = starting_symbol_string + sep + nets + sep + final_symbol_string
+        print('--' * level + path_string)
+        self.path.append(path_string)
 
         # PROCESS FOR THE NEXT ITERATION
         filtered_ports = self.remove_previous_ports(ports_at_nets, self.seen)
@@ -111,10 +108,10 @@ class PathFinder(object):
         self.seen.extend([(x, y, z) for (x, _, y, z) in processed_ports])
 
         if processed_ports:
-            self.tab += '--'
+            level += 1
             for (x, s, y, z) in processed_ports:
-                self.find_path(x, y, z, s)
-            self.tab = self.tab[:-2]
+                self.find_path(x, y, z, s, level)
+            level -= 1
         else:
             pass
 
