@@ -10,6 +10,18 @@ class PathFinder(object):
         self.seen = []
         self.path = []
         self.tab = ''
+        self.tester_symbols = ['J' + str(t) for t in range (0,54,2)]
+        self.tester_symbols.append('AGND')
+        self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
+        self.device_symbols = ['X' + str(t) for t in range(16)]
+        self.tester_connections = []
+        self.device_connections = []
+
+    def get_tester_connections(self):
+        return set([x for _, x, _, _ in self.path if x.split('_')[0] in self.tester_symbols])
+
+    def get_device_connections(self):
+        return set([x for _, x, _, _ in self.path if x.split('|')[0] in self.device_symbols])
 
     def populate_dictionaries(self, file_name):
         wb = load_workbook(file_name)
@@ -84,31 +96,36 @@ class PathFinder(object):
 
     def find_path(self, symbol, pin_num, pin_name, state='init', level=0):
 
+        if state == 'init':
+            self.clear_found_ports()
+
         # PROCESS FOR THIS ITERATION
-        symbol_and_pin = (symbol, pin_num, pin_name)
-        self.seen.append(symbol_and_pin)
-        nets = self.SYMBOL_DICT[symbol].pins[(pin_num, pin_name)]
-        ports_at_nets = self.process_nets(nets, symbol_and_pin)
+        node = (symbol, pin_num, pin_name)
+        nets = self.node_to_nets(node, state)
+        ports = self.nets_to_ports(nets, node)
+        self.seen.append(node)
 
         # PRINT OUT FOR DEBUG
         sep = ' >>> '
-        starting_symbol_string = ' ' + '|'.join([symbol, state, pin_num, pin_name])
-        final_symbol_string = ' & '.join(['|'.join([x, y, z]) for x, y, z in ports_at_nets])
+        starting_symbol_string = '|'.join([symbol, state, pin_num, pin_name])
+        final_symbol_string = ', '.join(['|'.join([x, y, z]) for x, y, z in ports])
         path_string = starting_symbol_string + sep + nets + sep + final_symbol_string
-        print('--' * level + path_string)
+        # print(str(level) + ' ' + '--' * level + path_string)
+
+        this_path = [level, starting_symbol_string, nets, final_symbol_string]
 
         # RECORD PATH
-        self.path.append(path_string)
+        self.path.append(this_path)
 
         # PROCESS FOR THE NEXT ITERATION
-        filtered_ports = self.remove_previous_ports(ports_at_nets, self.seen) #A,B,C --> A,B
-        processed_ports = self.process_ports(filtered_ports) #A,B --> C,D
-        self.seen.extend([(x, y, z) for (x, _, y, z) in processed_ports])
+        filtered_ports = self.remove_previous_ports(ports, self.seen) #A,B,C --> A,B
+        next_nodes = self.ports_to_nodes(filtered_ports) #A,B --> C,D
+        self.seen.extend([(x, y, z) for (x, _, y, z) in next_nodes])
 
-        if processed_ports:
+        if next_nodes:
             level += 1
-            for (x, s, y, z) in processed_ports:
-                self.find_path(x, y, z, s, level)
+            for (t, s, u, v) in next_nodes:
+                self.find_path(t, u, v, s, level)
             level -= 1
         else:
             pass
@@ -123,27 +140,41 @@ class PathFinder(object):
         # print (str([x for x in ports if x in seen]))
         return [x for x in ports if x not in seen]
 
-    def process_nets(self, nets, symbol_and_pin):
-        if nets in ['unconnected', 'AGND', '+5V', '-5V']:
+    def node_to_nets(self, symbol_and_pin, state):
+        (t, u, v) = symbol_and_pin
+        if str(t) in self.connector_symbols and state!= 'init':
+            n = '[tester]'
+        elif str(t) in self.device_symbols and state!= 'init':
+            n = '[device]'
+        else:
+            n = self.SYMBOL_DICT[t].pins[(u, v)]
+        return n
+
+    def nets_to_ports(self, nets, symbol_and_pin):
+        if nets in ['unconnected', 'AGND', '+5V', '-5V', '[tester]', '[device]']:
             return []
         else:
             return [x for x in self.NETS_DICT[nets] if x != symbol_and_pin]
 
-    def process_ports(self, ports):
+    def ports_to_nodes(self, ports):
 
         all_linked_ports = []
         for each_port in ports:
             (symbol, port_num, port_name) = each_port
 
-            states = self.SYMBOL_DICT[symbol].links.keys()
-
-            for state in states:
-                # print(str(state) + ' ' + str(each_port))
-                linked_ports = self.SYMBOL_DICT[symbol].links[state][(port_num, port_name)]
-                linked_ports = [(symbol, state, x, y) for (x, y) in linked_ports]
+            if str(symbol) in self.device_symbols or str(symbol) in self.connector_symbols:
+                linked_ports = [(symbol, 'na', port_num, port_name)]
                 all_linked_ports.extend(linked_ports)
+            else:
+                states = self.SYMBOL_DICT[symbol].links.keys()
+                for state in states:
+                    # print(str(state) + ' ' + str(each_port))
+                    linked_ports = self.SYMBOL_DICT[symbol].links[state][(port_num, port_name)]
+                    linked_ports = [(symbol, state, u, v) for (u, v) in linked_ports]
+                    all_linked_ports.extend(linked_ports)
 
         return all_linked_ports
 
     def clear_found_ports(self):
         self.seen = []
+        self.path = []
