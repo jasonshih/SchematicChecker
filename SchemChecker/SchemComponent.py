@@ -6,7 +6,57 @@ class SchematicComponent(object):
         self.links = {}
         self.pins = {}
 
-        if standard_type == 'std_8pins_relay':
+        if standard_type == 'gnd':
+            self.pins.update({
+                ('gnd', 'plane'): 'AGND'
+            })
+            self.links.update({
+                    'na': {
+                        ('gnd', 'plane'): []
+                    }
+                })
+
+        elif standard_type == '+5V':
+            self.pins.update({
+                ('+5V', 'plane'): '+5V'
+            })
+            self.links.update({
+                    'na': {
+                        ('+5V', 'plane'): []
+                    }
+                })
+
+        elif standard_type == '-5V':
+            self.pins.update({
+                ('-5V', 'plane'): '-5V'
+            })
+            self.links.update({
+                    'na': {
+                        ('-5V', 'plane'): []
+                    }
+                })
+
+        elif standard_type == 'device':
+            self.pins.update({
+                ('_', '_'): 'socket'
+            })
+            self.links.update({
+                    'na': {
+                        ('_', '_'): []
+                    }
+                })
+
+        elif standard_type == 'tester':
+            self.pins.update({
+                ('_', '_'): 'connector'
+            })
+            self.links.update({
+                    'na': {
+                        ('_', '_'): []
+                    }
+                })
+
+        elif standard_type == 'std_8pins_relay':
             self.links.update(
                 {
                     'off': {('1', 'N1'): [('8', 'N2')],

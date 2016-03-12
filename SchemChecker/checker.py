@@ -24,9 +24,9 @@ if __name__ == "__main__":
     # print('=' * 80)
     # oo.find_path('J6', 'T8', 'IO85')
     #
-    # print('=' * 80)
-    # oo.find_path('J6', 'A15', 'IO8')
-    # pass
+    print('=' * 80)
+    oo.find_path('J6', 'A15', 'IO8')
+    pass
 
 
     # for num, nam in oo.SYMBOL_DICT['X0'].pins:

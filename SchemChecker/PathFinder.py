@@ -1,19 +1,33 @@
 from openpyxl import load_workbook
 import SchemChecker.SchemComponent as sc
 
+
 class PathFinder(object):
 
     def __init__(self):
-        self.SYMBOL_DICT = {}
-        self.NETS_DICT = {}
+        self.SYMBOL_DICT = {
+            '[AGND]': sc.SchematicSymbol('gnd'),
+            '[+5V]': sc.SchematicSymbol('+5V'),
+            '[-5V]': sc.SchematicSymbol('-5V'),
+            '[device]': sc.SchematicSymbol('device'),
+            '[tester]': sc.SchematicSymbol('tester')
+        }
+        self.NETS_DICT = {
+            'AGND': [('[AGND]', 'gnd', 'plane')],
+            '+5V': [('[+5V]', '+5V', 'plane')],
+            '-5V': [('[-5V]', '-5V', 'plane')],
+            'socket': [('[device]', '_', '_')],
+            'connector': [('[tester]', '_', '_')],
+        }
         self.COMP_DICT = {}
         self.seen = []
         self.path = []
         self.tab = ''
-        self.tester_symbols = ['J' + str(t) for t in range (0,54,2)]
+        self.tester_symbols = ['J' + str(t) for t in range(0, 54, 2)]
         self.tester_symbols.append('AGND')
         self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
         self.device_symbols = ['X' + str(t) for t in range(16)]
+        self.plane_symbols = ['GND', '+5V', '-5V']
         self.tester_connections = []
         self.device_connections = []
 
@@ -27,8 +41,8 @@ class PathFinder(object):
         wb = load_workbook(file_name)
         ws = wb.get_active_sheet()
 
-        self.SYMBOL_DICT = {}
-        self.NETS_DICT = {}
+        # self.SYMBOL_DICT = {}
+        # self.NETS_DICT = {}
         # self.COMP_DICT = self.populate_component()
         cc = ''
 
@@ -72,7 +86,8 @@ class PathFinder(object):
                         else:
                             self.NETS_DICT.update({nets: [(cc, pin_num, pin_name)]})
 
-    def populate_component(self):
+    @staticmethod
+    def populate_component():
 
         comp_dict = {
             '300-23460-0237': sc.SchematicComponent('std_8pins_relay'),
@@ -110,7 +125,7 @@ class PathFinder(object):
         starting_symbol_string = '|'.join([symbol, state, pin_num, pin_name])
         final_symbol_string = ', '.join(['|'.join([x, y, z]) for x, y, z in ports])
         path_string = starting_symbol_string + sep + nets + sep + final_symbol_string
-        # print(str(level) + ' ' + '--' * level + path_string)
+        print(str(level) + ' ' + '--' * level + path_string)
 
         this_path = [level, starting_symbol_string, nets, final_symbol_string]
 
@@ -118,9 +133,9 @@ class PathFinder(object):
         self.path.append(this_path)
 
         # PROCESS FOR THE NEXT ITERATION
-        filtered_ports = self.remove_previous_ports(ports, self.seen) #A,B,C --> A,B
-        next_nodes = self.ports_to_nodes(filtered_ports) #A,B --> C,D
-        self.seen.extend([(x, y, z) for (x, _, y, z) in next_nodes])
+        filtered_ports = self.remove_previous_ports(ports, self.seen)  # A, B, C --> A, B
+        next_nodes = self.ports_to_nodes(filtered_ports)  # A, B --> C, D
+        self.seen.extend([(t, u, v) for (t, _, u, v) in next_nodes])
 
         if next_nodes:
             level += 1
@@ -142,18 +157,21 @@ class PathFinder(object):
 
     def node_to_nets(self, symbol_and_pin, state):
         (t, u, v) = symbol_and_pin
-        if str(t) in self.connector_symbols and state!= 'init':
-            n = '[tester]'
-        elif str(t) in self.device_symbols and state!= 'init':
-            n = '[device]'
+        if str(t) in self.connector_symbols and state != 'init':
+            n = 'connector'
+        elif str(t) in self.device_symbols and state != 'init':
+            n = 'socket'
         else:
             n = self.SYMBOL_DICT[t].pins[(u, v)]
         return n
 
     def nets_to_ports(self, nets, symbol_and_pin):
-        if nets in ['unconnected', 'AGND', '+5V', '-5V', '[tester]', '[device]']:
+        if nets in ['unconnected']:  # , 'AGND', '+5V', '-5V', 'tester', 'device']:
             return []
+        elif nets in ['AGND', '+5V', '-5V']:
+            return [x for x in self.NETS_DICT[nets] if '[' + nets + ']' in x]
         else:
+            # print(symbol_and_pin)
             return [x for x in self.NETS_DICT[nets] if x != symbol_and_pin]
 
     def ports_to_nodes(self, ports):
