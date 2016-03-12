@@ -1,16 +1,16 @@
 from openpyxl import load_workbook
-import SchemChecker.SchemComponent as sc
+from SchemChecker.SchemComponent import *
 
 
 class PathFinder(object):
 
     def __init__(self):
         self.SYMBOL_DICT = {
-            '[AGND]': sc.SchematicSymbol('gnd'),
-            '[+5V]': sc.SchematicSymbol('+5V'),
-            '[-5V]': sc.SchematicSymbol('-5V'),
-            '[device]': sc.SchematicSymbol('device'),
-            '[tester]': sc.SchematicSymbol('tester')
+            '[AGND]': SchematicSymbol('gnd'),
+            '[+5V]': SchematicSymbol('+5V'),
+            '[-5V]': SchematicSymbol('-5V'),
+            '[device]': SchematicSymbol('device'),
+            '[tester]': SchematicSymbol('tester')
         }
         self.NETS_DICT = {
             'AGND': [('[AGND]', 'gnd', 'plane')],
@@ -54,16 +54,16 @@ class PathFinder(object):
                     if len(ch) == 3:
 
                         if ch[1].startswith('10'):
-                            oo = sc.SchematicSymbol('std_2pins_passive')
+                            oo = SchematicSymbol('std_2pins_passive')
 
                         elif ch[1].startswith('300-23460'):
-                            oo = sc.SchematicSymbol('std_8pins_relay')
+                            oo = SchematicSymbol('std_8pins_relay')
 
                         elif ch[1].startswith('EMBEDDED_SHORTING_BAR'):
-                            oo = sc.SchematicComponent('std_shorting_bar')
+                            oo = SchematicComponent('std_shorting_bar')
 
                         else:
-                            oo = sc.SchematicComponent()
+                            oo = SchematicComponent()
                             print('unknown part type: ' + ch[1])
 
                         [_, oo.type, oo.id] = ch
@@ -90,21 +90,21 @@ class PathFinder(object):
     def populate_component():
 
         comp_dict = {
-            '300-23460-0237': sc.SchematicComponent('std_8pins_relay'),
-            '100-46302-2491': sc.SchematicComponent('std_2pins_passive'),
-            '100-46312-0000': sc.SchematicComponent('std_2pins_passive'),
-            '100-46302-9093': sc.SchematicComponent('std_2pins_passive'),
-            '100-55258-0105': sc.SchematicComponent('std_2pins_passive'),
-            '105-35077-3222': sc.SchematicComponent('std_2pins_passive'),
-            '100-46302-1002': sc.SchematicComponent('std_2pins_passive'),
-            '105-35273-2475': sc.SchematicComponent('std_2pins_passive'),
-            '100-46312-0103': sc.SchematicComponent('std_2pins_passive'),
-            '100-76445-31R6': sc.SchematicComponent('std_2pins_passive'),
-            '100-46313-0160': sc.SchematicComponent('std_2pins_passive'),
-            '105-35273-2225': sc.SchematicComponent('std_2pins_passive'),
-            '100-46302-1212': sc.SchematicComponent('std_2pins_passive'),
-            '100-46311-0000': sc.SchematicComponent('std_2pins_passive'),
-            'EMBEDDED_SHORTING_BAR': sc.SchematicComponent('std_shorting_bar')
+            '300-23460-0237': SchematicComponent('std_8pins_relay'),
+            '100-46302-2491': SchematicComponent('std_2pins_passive'),
+            '100-46312-0000': SchematicComponent('std_2pins_passive'),
+            '100-46302-9093': SchematicComponent('std_2pins_passive'),
+            '100-55258-0105': SchematicComponent('std_2pins_passive'),
+            '105-35077-3222': SchematicComponent('std_2pins_passive'),
+            '100-46302-1002': SchematicComponent('std_2pins_passive'),
+            '105-35273-2475': SchematicComponent('std_2pins_passive'),
+            '100-46312-0103': SchematicComponent('std_2pins_passive'),
+            '100-76445-31R6': SchematicComponent('std_2pins_passive'),
+            '100-46313-0160': SchematicComponent('std_2pins_passive'),
+            '105-35273-2225': SchematicComponent('std_2pins_passive'),
+            '100-46302-1212': SchematicComponent('std_2pins_passive'),
+            '100-46311-0000': SchematicComponent('std_2pins_passive'),
+            'EMBEDDED_SHORTING_BAR': SchematicComponent('std_shorting_bar')
         }
 
         return comp_dict
