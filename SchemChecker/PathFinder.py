@@ -121,10 +121,11 @@ class PathFinder(object):
         self.seen.append(node)
 
         # RECORD PATH
-        for each_port in ports:
-            this_path = '|'.join(node) + ' -- ' + nets + ' -- ' + '|'.join(each_port) + ';'
-            self.path.append(this_path)
-            print(this_path)
+        self.record_path(node, nets, ports)
+        # for each_port in ports:
+        #     this_path = '|'.join(node) + ' -- ' + nets + ' -- ' + '|'.join(each_port) + ';'
+        #     self.path.append(this_path)
+        #     print(this_path)
 
         # PROCESS FOR THE NEXT ITERATION
         filtered_ports = self.remove_previous_ports(ports, self.seen)  # A, B, C --> A, B
@@ -141,6 +142,13 @@ class PathFinder(object):
             pass
 
         return True
+
+    def record_path(self, node, nets, ports):
+        for each_port in ports:
+            # this_path = '|'.join(node) + ' -- ' + nets + ' -- ' + '|'.join(each_port) + ';'
+            this_path = '\"' + '|'.join(node) + '\" -- \"' + '|'.join(each_port) + '\" [label = \"' + nets + '\"];'
+            self.path.append(this_path)
+            print(this_path)
 
     @staticmethod
     def remove_previous_ports(ports, seen=None):
@@ -174,28 +182,23 @@ class PathFinder(object):
     def ports_to_nodes(self, ports):
 
         all_linked_ports = []
-        for each_port in ports:
-            (symbol, port_num, port_name) = each_port
+        for each_node in ports:
+            (symbol, port_num, port_name) = each_node
 
             if str(symbol) in self.device_symbols:
                 # device symbol
                 linked_ports = [('[device]', '[pmic]', '[tangerine]')]
                 all_linked_ports.extend(linked_ports)
 
-                for ea in linked_ports:
-                    this_path = '|'.join(each_port) + ' -- ' + 'socket' + ' -- ' + '|'.join(ea) + ';'
-                    self.path.append(this_path)
-                    print(this_path)
+                self.record_path(each_node, 'socket', linked_ports)
 
             elif str(symbol) in self.connector_symbols:
                 # tester symbol
                 linked_ports = [('[tester]', '[uflex]', '[8x_config]')]
                 all_linked_ports.extend(linked_ports)
 
-                for ea in linked_ports:
-                    this_path = '|'.join(each_port) + ' -- ' + 'connector' + ' -- ' + '|'.join(ea) + ';'
-                    self.path.append(this_path)
-                    print(this_path)
+                self.record_path(each_node, 'connector', linked_ports)
+
             else:
                 # internal connections within symbol
                 states = self.SYMBOL_DICT[symbol].links.keys()
@@ -204,10 +207,7 @@ class PathFinder(object):
                     linked_ports = [(symbol, u, v) for (u, v) in linked_ports]
                     all_linked_ports.extend(linked_ports)
 
-                    for ea in linked_ports:
-                        this_path = '|'.join(each_port) + ' -- ' + state + ' -- ' + '|'.join(ea) + ';'
-                        self.path.append(this_path)
-                        print(this_path)
+                    self.record_path(each_node, state, linked_ports)
 
         return all_linked_ports
 
