@@ -122,7 +122,7 @@ class PathFinder(object):
 
         # PRINT OUT FOR DEBUG
         sep = ' -- '
-        starting_symbol_string = '|'.join([symbol, state, pin_num, pin_name])
+        starting_symbol_string = '|'.join([symbol, pin_num, pin_name])
         final_symbol_string = ', '.join(['|'.join([x, y, z]) for x, y, z in ports])
         path_string = starting_symbol_string + sep + nets + sep + final_symbol_string
         print(str(level) + ' ' + '  ' * level + path_string)
@@ -134,13 +134,15 @@ class PathFinder(object):
 
         # PROCESS FOR THE NEXT ITERATION
         filtered_ports = self.remove_previous_ports(ports, self.seen)  # A, B, C --> A, B
-        next_nodes = self.ports_to_nodes(filtered_ports)  # A, B --> C, D
-        self.seen.extend([(t, u, v) for (t, _, u, v) in next_nodes])
+        unfiltered_next_nodes = self.ports_to_nodes(filtered_ports)  # A, B --> C, D
+        next_nodes = self.remove_tester_and_device_nodes(unfiltered_next_nodes)
+        # self.seen.extend([(t, u, v) for (t, u, v) in next_nodes])
+        self.seen.extend(next_nodes)
 
         if next_nodes:
             level += 1
-            for (t, s, u, v) in next_nodes:
-                self.find_path(t, u, v, s, level)
+            for (t, u, v) in next_nodes:
+                self.find_path(t, u, v, '', level)
             level -= 1
         else:
             pass
@@ -151,9 +153,12 @@ class PathFinder(object):
     def remove_previous_ports(ports, seen=None):
         if seen is None:
             seen = []
-
-        # print (str([x for x in ports if x in seen]))
         return [x for x in ports if x not in seen]
+
+    @staticmethod
+    def remove_tester_and_device_nodes(ports):
+        return [x for x in ports if x.split('|')[0] not in ['[device]', '[tester]']]
+
 
     def node_to_nets(self, symbol_and_pin, state):
         (t, u, v) = symbol_and_pin
@@ -180,16 +185,28 @@ class PathFinder(object):
         for each_port in ports:
             (symbol, port_num, port_name) = each_port
 
-            linked_ports = []
-            if str(symbol) in self.device_symbols or str(symbol) in self.connector_symbols:
-                linked_ports = [(symbol, 'na', port_num, port_name)]
+            # linked_ports = []
+            if str(symbol) in self.device_symbols:
+                # device symbol
+                linked_ports = [('[device]', '_', '_')]
                 all_linked_ports.extend(linked_ports)
+
+                for ea in linked_ports:
+                    print('|'.join(each_port) + ' -- ' + 'socket' + ' -- ' + '|'.join(ea))
+
+            elif str(symbol) in self.connector_symbols:
+                # tester symbol
+                linked_ports = [('[tester]', '_', '_')]
+                all_linked_ports.extend(linked_ports)
+
+                for ea in linked_ports:
+                    print('|'.join(each_port) + ' -- ' + 'connector' + ' -- ' + '|'.join(ea))
             else:
+                # internal connections within symbol
                 states = self.SYMBOL_DICT[symbol].links.keys()
                 for state in states:
-                    # print(str(state) + ' ' + str(each_port))
                     linked_ports = self.SYMBOL_DICT[symbol].links[state][(port_num, port_name)]
-                    linked_ports = [(symbol, state, u, v) for (u, v) in linked_ports]
+                    linked_ports = [(symbol, u, v) for (u, v) in linked_ports]
                     all_linked_ports.extend(linked_ports)
 
                     for ea in linked_ports:
