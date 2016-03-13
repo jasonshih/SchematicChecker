@@ -38,21 +38,21 @@ class SchematicComponent(object):
 
         elif standard_type == 'device':
             self.pins.update({
-                ('_', '_'): 'socket'
+                ('[pmic]', '[tangerine]'): 'socket'
             })
             self.links.update({
                     'na': {
-                        ('_', '_'): []
+                        ('[pmic]', '[tangerine]'): []
                     }
                 })
 
         elif standard_type == 'tester':
             self.pins.update({
-                ('_', '_'): 'connector'
+                ('[uflex]', '[8x_config]'): 'connector'
             })
             self.links.update({
                     'na': {
-                        ('_', '_'): []
+                        ('[uflex]', '[8x_config]'): []
                     }
                 })
 

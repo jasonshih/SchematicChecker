@@ -16,8 +16,8 @@ class PathFinder(object):
             'AGND': [('[AGND]', 'gnd', 'plane')],
             '+5V': [('[+5V]', '+5V', 'plane')],
             '-5V': [('[-5V]', '-5V', 'plane')],
-            'socket': [('[device]', '_', '_')],
-            'connector': [('[tester]', '_', '_')],
+            'socket': [('[device]', '[pmic]', '[tangerine]')],
+            'connector': [('[tester]', '[uflex]', '[8x_config]')],
         }
         self.COMP_DICT = {}
         self.seen = []
@@ -120,23 +120,16 @@ class PathFinder(object):
         ports = self.nets_to_ports(nets, node)
         self.seen.append(node)
 
-        # PRINT OUT FOR DEBUG
-        sep = ' -- '
-        starting_symbol_string = '|'.join([symbol, pin_num, pin_name])
-        final_symbol_string = ', '.join(['|'.join([x, y, z]) for x, y, z in ports])
-        path_string = starting_symbol_string + sep + nets + sep + final_symbol_string
-        print(str(level) + ' ' + '  ' * level + path_string)
-
-        this_path = [level, starting_symbol_string, nets, final_symbol_string]
-
         # RECORD PATH
-        self.path.append(this_path)
+        for each_port in ports:
+            this_path = '|'.join(node) + ' -- ' + nets + ' -- ' + '|'.join(each_port) + ';'
+            self.path.append(this_path)
+            print(this_path)
 
         # PROCESS FOR THE NEXT ITERATION
         filtered_ports = self.remove_previous_ports(ports, self.seen)  # A, B, C --> A, B
         unfiltered_next_nodes = self.ports_to_nodes(filtered_ports)  # A, B --> C, D
         next_nodes = self.remove_tester_and_device_nodes(unfiltered_next_nodes)
-        # self.seen.extend([(t, u, v) for (t, u, v) in next_nodes])
         self.seen.extend(next_nodes)
 
         if next_nodes:
@@ -157,8 +150,7 @@ class PathFinder(object):
 
     @staticmethod
     def remove_tester_and_device_nodes(ports):
-        return [x for x in ports if x.split('|')[0] not in ['[device]', '[tester]']]
-
+        return [x for x in ports if x[0] not in ['[device]', '[tester]']]
 
     def node_to_nets(self, symbol_and_pin, state):
         (t, u, v) = symbol_and_pin
@@ -185,22 +177,25 @@ class PathFinder(object):
         for each_port in ports:
             (symbol, port_num, port_name) = each_port
 
-            # linked_ports = []
             if str(symbol) in self.device_symbols:
                 # device symbol
-                linked_ports = [('[device]', '_', '_')]
+                linked_ports = [('[device]', '[pmic]', '[tangerine]')]
                 all_linked_ports.extend(linked_ports)
 
                 for ea in linked_ports:
-                    print('|'.join(each_port) + ' -- ' + 'socket' + ' -- ' + '|'.join(ea))
+                    this_path = '|'.join(each_port) + ' -- ' + 'socket' + ' -- ' + '|'.join(ea) + ';'
+                    self.path.append(this_path)
+                    print(this_path)
 
             elif str(symbol) in self.connector_symbols:
                 # tester symbol
-                linked_ports = [('[tester]', '_', '_')]
+                linked_ports = [('[tester]', '[uflex]', '[8x_config]')]
                 all_linked_ports.extend(linked_ports)
 
                 for ea in linked_ports:
-                    print('|'.join(each_port) + ' -- ' + 'connector' + ' -- ' + '|'.join(ea))
+                    this_path = '|'.join(each_port) + ' -- ' + 'connector' + ' -- ' + '|'.join(ea) + ';'
+                    self.path.append(this_path)
+                    print(this_path)
             else:
                 # internal connections within symbol
                 states = self.SYMBOL_DICT[symbol].links.keys()
@@ -210,7 +205,9 @@ class PathFinder(object):
                     all_linked_ports.extend(linked_ports)
 
                     for ea in linked_ports:
-                        print('|'.join(each_port) + ' -- ' + state + ' -- ' + '|'.join(ea))
+                        this_path = '|'.join(each_port) + ' -- ' + state + ' -- ' + '|'.join(ea) + ';'
+                        self.path.append(this_path)
+                        print(this_path)
 
         return all_linked_ports
 
