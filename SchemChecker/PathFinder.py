@@ -121,11 +121,11 @@ class PathFinder(object):
         self.seen.append(node)
 
         # PRINT OUT FOR DEBUG
-        sep = ' >>> '
+        sep = ' -- '
         starting_symbol_string = '|'.join([symbol, state, pin_num, pin_name])
         final_symbol_string = ', '.join(['|'.join([x, y, z]) for x, y, z in ports])
         path_string = starting_symbol_string + sep + nets + sep + final_symbol_string
-        print(str(level) + ' ' + '--' * level + path_string)
+        print(str(level) + ' ' + '  ' * level + path_string)
 
         this_path = [level, starting_symbol_string, nets, final_symbol_string]
 
@@ -180,6 +180,7 @@ class PathFinder(object):
         for each_port in ports:
             (symbol, port_num, port_name) = each_port
 
+            linked_ports = []
             if str(symbol) in self.device_symbols or str(symbol) in self.connector_symbols:
                 linked_ports = [(symbol, 'na', port_num, port_name)]
                 all_linked_ports.extend(linked_ports)
@@ -190,6 +191,9 @@ class PathFinder(object):
                     linked_ports = self.SYMBOL_DICT[symbol].links[state][(port_num, port_name)]
                     linked_ports = [(symbol, state, u, v) for (u, v) in linked_ports]
                     all_linked_ports.extend(linked_ports)
+
+                    for ea in linked_ports:
+                        print('|'.join(each_port) + ' -- ' + state + ' -- ' + '|'.join(ea))
 
         return all_linked_ports
 
