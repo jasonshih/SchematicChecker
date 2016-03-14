@@ -1,5 +1,6 @@
 from openpyxl import load_workbook
 from SchemChecker.SchemComponent import *
+from graphviz import Graph
 
 
 class PathFinder(object):
@@ -144,11 +145,13 @@ class PathFinder(object):
         return True
 
     def record_path(self, node, nets, ports):
+        # TODO: confirm this with graphviz
         for each_port in ports:
             # this_path = '|'.join(node) + ' -- ' + nets + ' -- ' + '|'.join(each_port) + ';'
-            this_path = '\"' + '|'.join(node) + '\" -- \"' + '|'.join(each_port) + '\" [label = \"' + nets + '\"];'
+            # this_path = '\"' + '|'.join(node) + '\" -- \"' + '|'.join(each_port) + '\" [label = \"' + nets + '\"];'
+            this_path = ['\"' + '|'.join(node) + '\"', '\"' + '|'.join(each_port) + '\"', '\"' + nets + '\"']
             self.path.append(this_path)
-            print(this_path)
+            # print(this_path)
 
     @staticmethod
     def remove_previous_ports(ports, seen=None):

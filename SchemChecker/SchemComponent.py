@@ -6,6 +6,7 @@ class SchematicComponent(object):
         self.links = {}
         self.pins = {}
 
+        # TODO: simplify the hell out of this.
         if standard_type == 'gnd':
             self.pins.update({
                 ('gnd', 'plane'): 'AGND'
