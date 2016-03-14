@@ -149,7 +149,7 @@ class PathFinder(object):
         for each_port in ports:
             # this_path = '|'.join(node) + ' -- ' + nets + ' -- ' + '|'.join(each_port) + ';'
             # this_path = '\"' + '|'.join(node) + '\" -- \"' + '|'.join(each_port) + '\" [label = \"' + nets + '\"];'
-            this_path = ['\"' + '|'.join(node) + '\"', '\"' + '|'.join(each_port) + '\"', '\"' + nets + '\"']
+            this_path = ['|'.join(node), '|'.join(each_port), nets]
             self.path.append(this_path)
             # print(this_path)
 

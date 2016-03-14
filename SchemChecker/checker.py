@@ -9,16 +9,18 @@ if __name__ == "__main__":
     oo.populate_dictionaries(xlsx_file)
 
     # print('=' * 80)
-    oo.find_path('X0', '90', 'GPIO6')
+    # oo.find_path('X0', '90', 'GPIO6')
     #
     # print('=' * 80)
     # oo.find_path('X0', '143', 'GPIO7')
-    xx.path = oo.path
-    xx.draw()
+
 
     pass
     # print('=' * 80)
-    # oo.find_path('X0', '110', 'MPP3')
+    oo.find_path('X0', '110', 'MPP3')
+    xx.path = oo.path
+    xx.SYMBOL_DICT = oo.SYMBOL_DICT
+    xx.draw()
     #
     # print('=' * 80)
     # oo.find_path('X0', '153', 'VREG_L3')
