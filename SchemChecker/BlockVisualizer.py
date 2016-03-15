@@ -1,28 +1,45 @@
-from graphviz import Digraph
+import pygraphviz as p
 
 
 class BlockVisualizer(object):
 
     def __init__(self):
         self.path = []
-        self.SYMBOL_DICT={}
+        self.SYMBOL_DICT = {}
 
     def draw(self):
-        g = Digraph("test graph", "test comment", filename='test_file.gv', format='ps', engine='dot')
-        g.attr('graph', rankdir='TB', splines='polylines')
-        g.attr('node', shape='box', fontsize='8')
+        g = p.AGraph(strict=False)
 
-        all_nodes = {y.split('|')[0] for x in self.path for y in x if '|' in y}
+        flatten_path = [y.split('|') for x in self.path for y in x]
+        flatten_nodes = [x for x in flatten_path if len(x) == 3]
+        all_nodes = {x[0] for x in flatten_nodes}
+
+        g.graph_attr['ranksep'] = '0.1'
+        g.node_attr['shape'] = 'Mrecord'
+        g.node_attr['fontsize'] = '8'
+        g.edge_attr['fontsize'] = '8'
+
         for each_node in all_nodes:
-            pins = ['<' + x[1] + '>' for x in self.SYMBOL_DICT[each_node].pins.keys()]
-            node_label = each_node + '<dft>|' + '|'.join(pins)
-            g.node(name= each_node, label=node_label)
+            pins = {'<' + v + '>' + v for t, u, v in flatten_nodes if t == each_node}
+            node_label = '<dft>' + each_node + '|' + '|'.join(pins) + ''
+
+            g.add_node(each_node, label=node_label)
 
         for i in self.path:
-            g.edge(i[0].split('|')[0], i[1], i[2], tailport='COM')
 
-        g.view()
+            tail, _, tail_port = i[0].split('|')
+            head, _, head_port = i[1].split('|')
+            if tail == head:
+                tail_port += ':n'
+                head_port += ':n'
 
+            if tail == head:
+                g.add_edge(tail, head, label=i[2], tailport=tail_port, headport=head_port, style='dotted')
+            else:
+                g.add_edge(tail, head, label=i[2], tailport=tail_port, headport=head_port)
+
+        g.add_subgraph(['J5', 'J6'], name='tester symbol', rank='same')
+        g.write('test_file.dot')
         pass
 
 #      digraph g {

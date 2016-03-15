@@ -1,6 +1,5 @@
 from openpyxl import load_workbook
 from SchemChecker.SchemComponent import *
-from graphviz import Graph
 
 
 class PathFinder(object):
