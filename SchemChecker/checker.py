@@ -8,19 +8,22 @@ if __name__ == "__main__":
     xx = bv.BlockVisualizer()
     oo.populate_dictionaries(xlsx_file)
 
+    combined_path = []
+
     # print('=' * 80)
     # oo.find_path('X0', '90', 'GPIO6')
     #
     # print('=' * 80)
     # oo.find_path('X0', '143', 'GPIO7')
-
-
-    pass
+    # combined_path.extend(oo.path)
     # print('=' * 80)
-    oo.find_path('X0', '110', 'MPP3')
-    xx.path = oo.path
-    xx.SYMBOL_DICT = oo.SYMBOL_DICT
-    xx.draw()
+
+    for i in ['X0', 'X1', 'X2', 'X3']:
+        oo.find_path(i, '153', 'VREG_L3')
+        # oo.find_path(i, '90', 'GPIO6')
+        # oo.find_path(i, '110', 'MPP3')
+        combined_path.extend(oo.path)
+
     #
     # print('=' * 80)
     # oo.find_path('X0', '153', 'VREG_L3')
@@ -35,7 +38,9 @@ if __name__ == "__main__":
     # oo.find_path('J6', 'A15', 'IO8')
     #
     # pass
-
+    xx.path = combined_path
+    xx.SYMBOL_DICT = oo.SYMBOL_DICT
+    xx.draw()
 
     # for num, nam in oo.SYMBOL_DICT['X0'].pins:
     #
