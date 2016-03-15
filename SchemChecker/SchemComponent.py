@@ -7,53 +7,23 @@ class SchematicComponent(object):
         self.pins = {}
 
         # TODO: simplify the hell out of this.
-        if standard_type == 'gnd':
+        if standard_type == 'plane':
             self.pins.update({
-                ('gnd', 'plane'): 'AGND'
+                ('00', 'plane'): ''
             })
             self.links.update({
                     'na': {
-                        ('gnd', 'plane'): []
+                        ('00', 'plane'): []
                     }
                 })
 
-        elif standard_type == '+5V':
+        elif standard_type == 'terminal':
             self.pins.update({
-                ('+5V', 'plane'): '+5V'
+                ('00', 'plane'): ''
             })
             self.links.update({
                     'na': {
-                        ('+5V', 'plane'): []
-                    }
-                })
-
-        elif standard_type == '-5V':
-            self.pins.update({
-                ('-5V', 'plane'): '-5V'
-            })
-            self.links.update({
-                    'na': {
-                        ('-5V', 'plane'): []
-                    }
-                })
-
-        elif standard_type == 'device':
-            self.pins.update({
-                ('[pmic]', '[tangerine]'): 'socket'
-            })
-            self.links.update({
-                    'na': {
-                        ('[pmic]', '[tangerine]'): []
-                    }
-                })
-
-        elif standard_type == 'tester':
-            self.pins.update({
-                ('[uflex]', '[8x_config]'): 'connector'
-            })
-            self.links.update({
-                    'na': {
-                        ('[uflex]', '[8x_config]'): []
+                        ('00', 'terminal'): []
                     }
                 })
 
@@ -88,7 +58,7 @@ class SchematicComponent(object):
                            ('2', 'NEG'): [('1', 'POS')]}
                 })
 
-        elif standard_type == 'std_shorting_bar':
+        elif standard_type == 'jumper':
             self.links.update(
                 {
                     'na': {('1', 'IO1'): [('2', 'IO2')],

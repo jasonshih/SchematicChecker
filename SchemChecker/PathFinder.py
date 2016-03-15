@@ -6,27 +6,29 @@ class PathFinder(object):
 
     def __init__(self):
         self.SYMBOL_DICT = {
-            '[AGND]': SchematicSymbol('gnd'),
-            '[+5V]': SchematicSymbol('+5V'),
-            '[-5V]': SchematicSymbol('-5V'),
-            '[device]': SchematicSymbol('device'),
-            '[tester]': SchematicSymbol('tester')
+            '[AGND]': SchematicSymbol('plane'),
+            '[+5V]': SchematicSymbol('plane'),
+            '[-5V]': SchematicSymbol('plane'),
+            '[device]': SchematicSymbol('terminal'),
+            '[tester]': SchematicSymbol('terminal'),
+            '[WARNING]': SchematicSymbol('terminal')
         }
+
         self.NETS_DICT = {
-            'AGND': [('[AGND]', 'gnd', 'plane')],
-            '+5V': [('[+5V]', '+5V', 'plane')],
-            '-5V': [('[-5V]', '-5V', 'plane')],
-            'socket': [('[device]', '[pmic]', '[tangerine]')],
-            'connector': [('[tester]', '[uflex]', '[8x_config]')],
+            'AGND': [('[AGND]', '00', 'plane')],
+            'unconnected': [('[WARNING]', '00', 'terminal')],
+            # '-5V': [('[-5V]', '00', 'plane')],
+            # 'socket': [('[device]', '00', 'terminal')],
+            # 'connector': [('[tester]', '00', 'terminal')],
         }
         self.COMP_DICT = {}
         self.seen = []
         self.path = []
         self.tab = ''
-        self.tester_symbols = ['J' + str(t) for t in range(0, 54, 2)]
-        self.tester_symbols.append('AGND')
         self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
         self.device_symbols = ['X' + str(t) for t in range(16)]
+        self.tester_symbols = ['J' + str(t) for t in range(0, 54, 2)]
+        self.tester_symbols.append('AGND')
         self.plane_symbols = ['GND', '+5V', '-5V']
         self.tester_connections = []
         self.device_connections = []
@@ -40,10 +42,6 @@ class PathFinder(object):
     def populate_dictionaries(self, file_name):
         wb = load_workbook(file_name)
         ws = wb.get_active_sheet()
-
-        # self.SYMBOL_DICT = {}
-        # self.NETS_DICT = {}
-        # self.COMP_DICT = self.populate_component()
         cc = ''
 
         for row in ws.rows:
@@ -60,17 +58,16 @@ class PathFinder(object):
                             oo = SchematicSymbol('std_8pins_relay')
 
                         elif ch[1].startswith('EMBEDDED_SHORTING_BAR'):
-                            oo = SchematicComponent('std_shorting_bar')
+                            oo = SchematicSymbol('jumper')
 
                         else:
-                            oo = SchematicComponent()
+                            oo = SchematicSymbol()
                             print('unknown part type: ' + ch[1])
 
                         [_, oo.type, oo.id] = ch
                         self.SYMBOL_DICT.update({oo.id: oo})
 
                         cc = oo.id
-                        # print(ch)
 
                 if "Property:" in str(cell.value):
                     pass
@@ -122,10 +119,6 @@ class PathFinder(object):
 
         # RECORD PATH
         self.record_path(node, nets, ports)
-        # for each_port in ports:
-        #     this_path = '|'.join(node) + ' -- ' + nets + ' -- ' + '|'.join(each_port) + ';'
-        #     self.path.append(this_path)
-        #     print(this_path)
 
         # PROCESS FOR THE NEXT ITERATION
         filtered_ports = self.remove_previous_ports(ports, self.seen)  # A, B, C --> A, B
@@ -144,13 +137,11 @@ class PathFinder(object):
         return True
 
     def record_path(self, node, nets, ports):
-        # TODO: confirm this with graphviz
         for each_port in ports:
-            # this_path = '|'.join(node) + ' -- ' + nets + ' -- ' + '|'.join(each_port) + ';'
-            # this_path = '\"' + '|'.join(node) + '\" -- \"' + '|'.join(each_port) + '\" [label = \"' + nets + '\"];'
             this_path = ['|'.join(node), '|'.join(each_port), nets]
             self.path.append(this_path)
-            # print(this_path)
+            print(this_path)
+            pass
 
     @staticmethod
     def remove_previous_ports(ports, seen=None):
@@ -174,7 +165,7 @@ class PathFinder(object):
 
     def nets_to_ports(self, nets, symbol_and_pin):
         if nets in ['unconnected']:  # , 'AGND', '+5V', '-5V', 'tester', 'device']:
-            return []
+            return [x for x in self.NETS_DICT[nets] if '[WARNING]' in x]
         elif nets in ['AGND', '+5V', '-5V']:
             return [x for x in self.NETS_DICT[nets] if '[' + nets + ']' in x]
         else:
@@ -189,17 +180,17 @@ class PathFinder(object):
 
             if str(symbol) in self.device_symbols:
                 # device symbol
-                linked_ports = [('[device]', '[pmic]', '[tangerine]')]
-                all_linked_ports.extend(linked_ports)
-
-                self.record_path(each_node, 'socket', linked_ports)
+                # linked_ports = [('[device]', '[pmic]', '[tangerine]')]
+                # all_linked_ports.extend(linked_ports)
+                # self.record_path(each_node, 'socket', linked_ports)
+                pass
 
             elif str(symbol) in self.connector_symbols:
                 # tester symbol
-                linked_ports = [('[tester]', '[uflex]', '[8x_config]')]
-                all_linked_ports.extend(linked_ports)
-
-                self.record_path(each_node, 'connector', linked_ports)
+                # linked_ports = [('[tester]', '[uflex]', '[8x_config]')]
+                # all_linked_ports.extend(linked_ports)
+                # self.record_path(each_node, 'connector', linked_ports)
+                pass
 
             else:
                 # internal connections within symbol
