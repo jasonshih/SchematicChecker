@@ -2,7 +2,7 @@ from openpyxl import load_workbook
 from SchemChecker.SchemComponent import *
 
 
-class PathFinder(object):
+class SourceReader(object):
 
     def __init__(self):
         self.SYMBOL_DICT = {
@@ -17,29 +17,10 @@ class PathFinder(object):
         self.NETS_DICT = {
             'AGND': [('[AGND]', '00', 'plane')],
             'unconnected': [('[WARNING]', '00', 'terminal')],
-            # '-5V': [('[-5V]', '00', 'plane')],
-            # 'socket': [('[device]', '00', 'terminal')],
-            # 'connector': [('[tester]', '00', 'terminal')],
         }
-        self.COMP_DICT = {}
-        self.seen = []
-        self.path = []
-        self.tab = ''
-        self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
-        self.device_symbols = ['X' + str(t) for t in range(16)]
-        self.tester_symbols = ['J' + str(t) for t in range(0, 54, 2)]
-        self.tester_symbols.append('AGND')
-        self.plane_symbols = ['GND', '+5V', '-5V']
-        self.tester_connections = []
-        self.device_connections = []
+        pass
 
-    def get_tester_connections(self):
-        return set([x for _, x, _, _ in self.path if x.split('_')[0] in self.tester_symbols])
-
-    def get_device_connections(self):
-        return set([x for _, x, _, _ in self.path if x.split('|')[0] in self.device_symbols])
-
-    def populate_dictionaries(self, file_name):
+    def read_xlsx(self, file_name):
         wb = load_workbook(file_name)
         ws = wb.get_active_sheet()
         cc = ''
@@ -83,6 +64,28 @@ class PathFinder(object):
                         else:
                             self.NETS_DICT.update({nets: [(cc, pin_num, pin_name)]})
 
+
+class PathFinder(SourceReader):
+
+    def __init__(self):
+        SourceReader.__init__(self)
+        self.seen = []
+        self.path = []
+        self.tab = ''
+        self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
+        self.device_symbols = ['X' + str(t) for t in range(16)]
+        self.tester_symbols = ['J' + str(t) for t in range(0, 54, 2)]
+        self.tester_symbols.append('AGND')
+        self.plane_symbols = ['GND', '+5V', '-5V']
+        self.tester_connections = []
+        self.device_connections = []
+
+    def get_tester_nets(self):
+        return set([x for x, _, _ in self.path if x.split('_')[0] in self.tester_symbols])
+
+    def get_device_symbols(self):
+        return set([x for x, _, _ in self.path if x.split('|')[0] in self.device_symbols])
+
     @staticmethod
     def populate_component():
 
@@ -106,30 +109,39 @@ class PathFinder(object):
 
         return comp_dict
 
-    def find_path(self, symbol, pin_num, pin_name, state='init', level=0):
-
-        if state == 'init':
+    def find_path(self, node_tail, level=0):
+        '''
+        main function call for this class. finding path in this format:
+            TAIL   -- EDGE -- HEAD
+        :param node_tail: (symbol, pin num, pin name)
+        :param level: 0 for root call.
+        :return: True for a successful run.
+        '''
+        if level == 0:
             self.clear_found_ports()
 
+        # (symbol, pin_num, pin_name) = node_tail
+        if len(node_tail) != 3:
+            return False
+
         # PROCESS FOR THIS ITERATION
-        node = (symbol, pin_num, pin_name)
-        nets = self.node_to_nets(node, state)
-        ports = self.nets_to_ports(nets, node)
-        self.seen.append(node)
+        edge = self.tail_to_edge(node_tail, level)
+        node_head = self.edge_to_head(edge, node_tail)
+        self.seen.append(node_tail)
 
         # RECORD PATH
-        self.record_path(node, nets, ports)
+        self.record_path(node_tail, edge, node_head)
 
         # PROCESS FOR THE NEXT ITERATION
-        filtered_ports = self.remove_previous_ports(ports, self.seen)  # A, B, C --> A, B
-        unfiltered_next_nodes = self.ports_to_nodes(filtered_ports)  # A, B --> C, D
-        next_nodes = self.remove_tester_and_device_nodes(unfiltered_next_nodes)
-        self.seen.extend(next_nodes)
+        filtered_node_head = self.filter_out_previous_nodes(node_head, self.seen)  # A, B, C --> A, B
+        next_node_tail = self.head_to_tail(filtered_node_head)  # A, B --> C, D, E
+        filtered_next_tail = self.filter_out_terminal_nodes(next_node_tail)
+        self.seen.extend(filtered_next_tail)
 
-        if next_nodes:
+        if filtered_next_tail:
             level += 1
-            for (t, u, v) in next_nodes:
-                self.find_path(t, u, v, '', level)
+            for each_node in filtered_next_tail:
+                self.find_path(each_node, level)
             level -= 1
         else:
             pass
@@ -144,49 +156,61 @@ class PathFinder(object):
             pass
 
     @staticmethod
-    def remove_previous_ports(ports, seen=None):
+    def filter_out_previous_nodes(ports, seen=None):
         if seen is None:
             seen = []
         return [x for x in ports if x not in seen]
 
     @staticmethod
-    def remove_tester_and_device_nodes(ports):
-        return [x for x in ports if x[0] not in ['[device]', '[tester]']]
+    def filter_out_terminal_nodes(ports):
+        return [x for x in ports if x[0] not in ['[device]', '[tester]', '[WARNING]']]
 
-    def node_to_nets(self, symbol_and_pin, state):
-        (t, u, v) = symbol_and_pin
-        if str(t) in self.connector_symbols and state != 'init':
+    def tail_to_edge(self, tail, level):
+        '''
+        :param tail: (symbol, pin number, pin name)
+        :param level: +ve integer
+        :return: nets
+        '''
+        (t, u, v) = tail
+        if str(t) in self.connector_symbols and level > 0:
             n = 'connector'
-        elif str(t) in self.device_symbols and state != 'init':
+        elif str(t) in self.device_symbols and level > 0:
             n = 'socket'
         else:
             n = self.SYMBOL_DICT[t].pins[(u, v)]
         return n
 
-    def nets_to_ports(self, nets, symbol_and_pin):
-        if nets in ['unconnected']:  # , 'AGND', '+5V', '-5V', 'tester', 'device']:
-            return [x for x in self.NETS_DICT[nets] if '[WARNING]' in x]
-        elif nets in ['AGND', '+5V', '-5V']:
-            return [x for x in self.NETS_DICT[nets] if '[' + nets + ']' in x]
+    def edge_to_head(self, edge, tail):
+        '''
+        :param edge: nets
+        :param tail: (symbol, pin number, pin name)
+        :return: list of (symbol, pin number, pin name)
+        '''
+        if edge in ['unconnected']:  # , 'AGND', '+5V', '-5V', 'tester', 'device']:
+            return [x for x in self.NETS_DICT[edge] if '[WARNING]' in x]
+        elif edge in ['AGND', '+5V', '-5V']:
+            return [x for x in self.NETS_DICT[edge] if '[' + edge + ']' in x]
         else:
-            # print(symbol_and_pin)
-            return [x for x in self.NETS_DICT[nets] if x != symbol_and_pin]
+            return [x for x in self.NETS_DICT[edge] if x != tail]
 
-    def ports_to_nodes(self, ports):
-
+    def head_to_tail(self, head):
+        '''
+        :param head: list of (symbol, pin number, pin name)
+        :return: translated list of (symbol, pin numer, pin name)
+        '''
         all_linked_ports = []
-        for each_node in ports:
+        for each_node in head:
             (symbol, port_num, port_name) = each_node
 
             if str(symbol) in self.device_symbols:
-                # device symbol
+                # TERMINAL: device symbol
                 # linked_ports = [('[device]', '[pmic]', '[tangerine]')]
                 # all_linked_ports.extend(linked_ports)
                 # self.record_path(each_node, 'socket', linked_ports)
                 pass
 
             elif str(symbol) in self.connector_symbols:
-                # tester symbol
+                # TERMINAL: connector symbol
                 # linked_ports = [('[tester]', '[uflex]', '[8x_config]')]
                 # all_linked_ports.extend(linked_ports)
                 # self.record_path(each_node, 'connector', linked_ports)
@@ -205,5 +229,9 @@ class PathFinder(object):
         return all_linked_ports
 
     def clear_found_ports(self):
+        '''
+        clear seen & path variables, meant for first find_path call.
+        :return: none
+        '''
         self.seen = []
         self.path = []
