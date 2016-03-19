@@ -4,6 +4,8 @@ import re
 class PathCruncher(object):
 
     def __init__(self):
+        # TODO maintain single assignment for connector symbols
+        self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
         self.path_reference = []
         self.path_under_test = []
 
@@ -24,6 +26,7 @@ class PathCruncher(object):
 
     def mask_symbol_and_nets_identifier(self, path):
         pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
+        pat_symbol_conn = re.compile('^J\d+([\w|]+)IO\d+', re.I)
         pat_plane = re.compile('-5V|\+5V|\+5V_RLY|AGND|P5V|P15V|N15V|N5V', re.I)
         pat_hidden = re.compile('^\$(\w*)')
         pat_site = re.compile('^S\d{1,2}(_\w*)', re.I)
@@ -36,7 +39,11 @@ class PathCruncher(object):
         for x in path:
             inner_list = []
             for y in x[0:2]:
-                z = pat_symbol.sub(self.replace_last_symbol_char, y)
+                # TODO differentiate connector symbols
+                if y.split('|')[0] in self.connector_symbols:
+                    z = pat_symbol_conn.sub('J##|##|IO##', y)
+                else:
+                    z = pat_symbol.sub(self.replace_last_symbol_char, y)
                 # print('symbol: ' + y + ' --> ' + z)
                 inner_list.append(z)
             inner_list.append(x[2])
@@ -45,7 +52,6 @@ class PathCruncher(object):
         final_list = []
         for t in outer_list:
             u = t[2]
-            v = None
             tail = t[0].split('|')[0]
             head = t[1].split('|')[0]
             tailhead = '_'.join([tail, head])
@@ -53,17 +59,23 @@ class PathCruncher(object):
             if pat_plane.search(u):
                 v = u
             elif pat_hidden.search(u):
-                v = pat_hidden.sub(r'hidden_@' + tailhead, u)
+                v = pat_hidden.sub(r'hidden', u)
+                # v = pat_hidden.sub(r'hidden_@' + tailhead, u)
             elif pat_site.search(u):
-                v = pat_site.sub(r'S##\1_@' + tailhead, u)
+                v = pat_site.sub(r'S##\1', u)
+                # v = pat_site.sub(r'S##\1_@' + tailhead, u)
             elif pat_udb.search(u):
-                v = pat_udb.sub(r'UDB##_@' + tailhead, u)
+                v = pat_udb.sub(r'UDB##', u)
+                # v = pat_udb.sub(r'UDB##_@' + tailhead, u)
             elif pat_uvi.search(u):
-                v = pat_uvi.sub(r'J##_UVI80_##\1_@' + tailhead, u)
+                v = pat_uvi.sub(r'J##_UVI80_##\1', u)
+                # v = pat_uvi.sub(r'J##_UVI80_##\1_@' + tailhead, u)
             elif pat_hsd.search(u):
-                v = pat_hsd.sub(r'J##_HSD_###_@' + tailhead, u)
+                v = pat_hsd.sub(r'J##_HSD_###', u)
+                # v = pat_hsd.sub(r'J##_HSD_###_@' + tailhead, u)
             elif pat_common.search(u):
-                v = pat_common.sub(r'\1_@' + tailhead, u)
+                v = pat_common.sub(r'\1', u)
+                # v = pat_common.sub(r'\1_@' + tailhead, u)
             else:
                 v = u
                 print('WARNING: unknown nets type')
@@ -75,6 +87,13 @@ class PathCruncher(object):
     def create_reference(self, path):
 
         self.path_reference = self.mask_symbol_and_nets_identifier(path)
+
+        print('original reference path:')
+        for x in path:
+            print(x)
+
+        print('')
+        print('masked reference path:')
         for x in self.path_reference:
             print(x)
 
@@ -90,18 +109,25 @@ class PathCruncher(object):
         else:
             if self.path_reference.__len__() != self.path_under_test.__len__():
                 print('WARNING: different number of path')
+
+                for i in range(self.path_under_test.__len__()):
+                    if self.path_under_test[i] in self.path_reference:
+                        pass
+                    else:
+                        print('no match found: ' + str(self.path_under_test[i]))
+
             else:
                 print('WARNING: same number of path but not equal')
-                for i in range(self.path_reference.__len__()):
+                for i in range(self.path_under_test.__len__()):
                     if self.path_reference[i] == self.path_under_test[i]:
-                        print('actually it\'s ok')
+                        pass
                     else:
-                        print(str(i) +': ' + str(self.path_reference[i]))
-                        print(str(i) +': ' + str(self.path_under_test[i]))
+                        print(str(i) + ' ref: ' + str(self.path_reference[i]))
+                        print(str(i) + ' res: ' + str(self.path_under_test[i]))
             return False
 
-    def replace_last_symbol_char(self, match_obj):
-
+    @staticmethod
+    def replace_last_symbol_char(match_obj):
         if re.search('[a-z]+[0-9]+\|', match_obj.group(0), re.I):
             return re.sub('([a-zA-Z]+)[0-9]+\|', '\\1##|', match_obj.group(0))
         else:
