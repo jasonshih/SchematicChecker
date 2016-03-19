@@ -25,6 +25,8 @@ class SourceReader(object):
         ws = wb.get_active_sheet()
         cc = ''
 
+        unknown_parts = []
+
         for row in ws.rows:
             for cell in row:
                 if "COMP:" in str(cell.value):
@@ -43,7 +45,9 @@ class SourceReader(object):
 
                         else:
                             oo = SchematicSymbol()
-                            print('unknown part type: ' + ch[1])
+                            if ch[1] not in unknown_parts:
+                                print('unknown part type: ' + ch[1])
+                                unknown_parts.append(ch[1])
 
                         [_, oo.type, oo.id] = ch
                         self.SYMBOL_DICT.update({oo.id: oo})
@@ -152,7 +156,7 @@ class PathFinder(SourceReader):
         for each_port in ports:
             this_path = ['|'.join(node), '|'.join(each_port), nets]
             self.path.append(this_path)
-            print(this_path)
+            # print(this_path)
             pass
 
     @staticmethod

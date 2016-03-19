@@ -8,7 +8,7 @@ if __name__ == "__main__":
     xx = bV.BlockVisualizer()
     ff = pA.PathCruncher()
 
-    ff.is_multi_site_ok()
+    # ff.create_reference()
 
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     oo.read_xlsx(xlsx_file)
@@ -23,22 +23,38 @@ if __name__ == "__main__":
     # # oo.find_path('J6', 'T8', 'IO85')
     # # oo.find_path('J6', 'A15', 'IO8')
     #
-    # for i in ['X0', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8']:
-    #     # oo.find_path(i, '153', 'VREG_L3')
-    #     oo.find_path((i, '90', 'GPIO6'))
-    #     # oo.find_path((i, '143', 'GPIO7'))
-    #     # oo.find_path(i, '110', 'MPP3')
-    #     combined_path.extend(oo.path)
-    #     sep_path.update({i: oo.path})
 
+    for i in ['X' + str(i) for i in range(16)]:
+
+        oo.find_path((i, '110', 'MPP3'))
+        # oo.find_path((i, '114', 'CC1'))
+        # oo.find_path((i, '153', 'VREG_L3'))
+        # oo.find_path((i, '90', 'GPIO6'))
+
+        if i == 'X0':
+            ff.create_reference(oo.path)
+            print('REFERENCE:')
+            [print(x) for x in ff.path_reference]
+        else:
+            print('TESTING :' + i + '...')
+            ff.set_path_under_test(oo.path)
+            ff.is_multi_site_ok()
+            ff.set_path_under_test([])
+            print('\n')
+            # print(i + ' vs X0: ' + str(ff.is_multi_site_ok()))
+            # print('PATH UNDER TEST:')
+            # [print(x) for x in ff.path_under_test]
+
+        # oo.find_path((i, '143', 'GPIO7'))
+        # oo.find_path(i, '110', 'MPP3')
+        # combined_path.extend(oo.path)
+        # sep_path.update({i: oo.path})
 
     # def dashrepl(matchobj):
     # ...     if matchobj.group(0) == '-': return ' '
     # ...     else: return '-'
     # >>> re.sub('-{1,2}', dashrepl, 'pro----gram-files')
     # 'pro--gram files'
-
-    pass
 
     # xx.path = combined_path
     # xx.SYMBOL_DICT = oo.SYMBOL_DICT
