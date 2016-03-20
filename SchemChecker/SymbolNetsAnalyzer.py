@@ -1,12 +1,12 @@
 import re
-from .SchemComponent import SpecialSymbols
+from SchemChecker.SchemComponent import SpecialSymbols
 
 
 class PathCruncher(SpecialSymbols):
 
     def __init__(self):
         SpecialSymbols.__init__(self)
-        # TODO maintain single assignment for connector symbols
+
         self.path_reference = []
         self.path_under_test = []
 
@@ -25,7 +25,63 @@ class PathCruncher(SpecialSymbols):
                    ['R43C|2|NEG', 'J26|R12|IO68', 'J16_HSD_212']]
         }
 
-    def mask_symbol_and_nets_identifier(self, path):
+    def compile(self, path):
+
+        self.path_reference = self.__mask_symbol_and_nets_identifier(path)
+
+        print('original reference path:')
+        for x in path:
+            print(x)
+
+        print('')
+        print('masked reference path:')
+        for x in self.path_reference:
+            print(x)
+
+    # def set_path_under_test(self, path):
+    #
+    #     self.path_under_test = self.__mask_symbol_and_nets_identifier(path)
+
+    def is_multi_site_ok(self, path):
+
+        self.path_under_test = self.__mask_symbol_and_nets_identifier(path)
+
+        if self.path_reference == self.path_under_test:
+            print('OK: multi site compare')
+            return True
+        else:
+            if self.path_reference.__len__() != self.path_under_test.__len__():
+                print('WARNING: different number of path')
+
+                for i in range(self.path_under_test.__len__()):
+                    if self.path_under_test[i] in self.path_reference:
+                        pass
+                    else:
+                        print('no match found: ' + str(self.path_under_test[i]))
+
+            else:
+                print('WARNING: same number of path but not equal')
+                for i in range(self.path_under_test.__len__()):
+                    if self.path_reference[i] == self.path_under_test[i]:
+                        pass
+                    else:
+                        print(str(i) + ' ref: ' + str(self.path_reference[i]))
+                        print(str(i) + ' res: ' + str(self.path_under_test[i]))
+            return False
+
+    def is_force_sense_connected(self, path):
+        pass
+
+    def is_connected_to_other_sites(self, path):
+        pass
+
+    def get_tester_nets(self, path):
+        print(str({x[2] for x in path if x[2].split('_')[0] in self.tester_symbols}))
+
+    def get_device_symbols(self, path):
+        print(str({y for x in path for y in x[:2] if y.split('|')[0] in self.device_symbols}))
+
+    def __mask_symbol_and_nets_identifier(self, path):
         pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
         pat_symbol_conn = re.compile('^J\d+([\w|]+)IO\d+', re.I)
         pat_plane = re.compile('-5V|\+5V|\+5V_RLY|AGND|P5V|P15V|N15V|N5V', re.I)
@@ -44,7 +100,7 @@ class PathCruncher(SpecialSymbols):
                 if y.split('|')[0] in self.connector_symbols:
                     z = pat_symbol_conn.sub('J##|##|IO##', y)
                 else:
-                    z = pat_symbol.sub(self.replace_last_symbol_char, y)
+                    z = pat_symbol.sub(self.__replace_last_symbol_char, y)
                 # print('symbol: ' + y + ' --> ' + z)
                 inner_list.append(z)
             inner_list.append(x[2])
@@ -85,50 +141,8 @@ class PathCruncher(SpecialSymbols):
             final_list.append([t[0], t[1], v])
         return final_list
 
-    def create_reference(self, path):
-
-        self.path_reference = self.mask_symbol_and_nets_identifier(path)
-
-        print('original reference path:')
-        for x in path:
-            print(x)
-
-        print('')
-        print('masked reference path:')
-        for x in self.path_reference:
-            print(x)
-
-    def set_path_under_test(self, path):
-
-        self.path_under_test = self.mask_symbol_and_nets_identifier(path)
-
-    def is_multi_site_ok(self):
-
-        if self.path_reference == self.path_under_test:
-            print('OK: all good')
-            return True
-        else:
-            if self.path_reference.__len__() != self.path_under_test.__len__():
-                print('WARNING: different number of path')
-
-                for i in range(self.path_under_test.__len__()):
-                    if self.path_under_test[i] in self.path_reference:
-                        pass
-                    else:
-                        print('no match found: ' + str(self.path_under_test[i]))
-
-            else:
-                print('WARNING: same number of path but not equal')
-                for i in range(self.path_under_test.__len__()):
-                    if self.path_reference[i] == self.path_under_test[i]:
-                        pass
-                    else:
-                        print(str(i) + ' ref: ' + str(self.path_reference[i]))
-                        print(str(i) + ' res: ' + str(self.path_under_test[i]))
-            return False
-
     @staticmethod
-    def replace_last_symbol_char(match_obj):
+    def __replace_last_symbol_char(match_obj):
         if re.search('[a-z]+[0-9]+\|', match_obj.group(0), re.I):
             return re.sub('([a-zA-Z]+)[0-9]+\|', '\\1##|', match_obj.group(0))
         else:

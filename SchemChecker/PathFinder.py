@@ -1,5 +1,5 @@
 from openpyxl import load_workbook
-from .SchemComponent import *
+from SchemChecker.SchemComponent import *
 
 
 class SourceReader(object):
@@ -55,6 +55,7 @@ class SourceReader(object):
                         cc = oo.id
 
                 if "Property:" in str(cell.value):
+                    # TODO get DNI property
                     pass
 
                 if "Explicit Pin:" in str(cell.value):
@@ -80,49 +81,16 @@ class PathFinder(SourceReader, SpecialSymbols):
         self.tester_connections = []
         self.device_connections = []
 
-    def get_tester_nets(self):
-        return set([x for x, _, _ in self.path if x.split('_')[0] in self.tester_symbols])
-
-    def get_device_symbols(self):
-        return set([x for x, _, _ in self.path if x.split('|')[0] in self.device_symbols])
-
-    @staticmethod
-    def populate_component():
-
-        comp_dict = {
-            '300-23460-0237': SchematicComponent('std_8pins_relay'),
-            '100-46302-2491': SchematicComponent('std_2pins_passive'),
-            '100-46312-0000': SchematicComponent('std_2pins_passive'),
-            '100-46302-9093': SchematicComponent('std_2pins_passive'),
-            '100-55258-0105': SchematicComponent('std_2pins_passive'),
-            '105-35077-3222': SchematicComponent('std_2pins_passive'),
-            '100-46302-1002': SchematicComponent('std_2pins_passive'),
-            '105-35273-2475': SchematicComponent('std_2pins_passive'),
-            '100-46312-0103': SchematicComponent('std_2pins_passive'),
-            '100-76445-31R6': SchematicComponent('std_2pins_passive'),
-            '100-46313-0160': SchematicComponent('std_2pins_passive'),
-            '105-35273-2225': SchematicComponent('std_2pins_passive'),
-            '100-46302-1212': SchematicComponent('std_2pins_passive'),
-            '100-46311-0000': SchematicComponent('std_2pins_passive'),
-            'EMBEDDED_SHORTING_BAR': SchematicComponent('std_shorting_bar')
-        }
-
-        return comp_dict
-
     def find_path(self, node_tail, level=0):
-        '''
-        main function call for this class. finding path in this format:
-            TAIL   -- EDGE -- HEAD
-        :param node_tail: (symbol, pin num, pin name)
-        :param level: 0 for root call.
-        :return: True for a successful run.
-        '''
+        # main function call for this class. finding path in this format:
+        #     TAIL   -- EDGE -- HEAD
+
         if level == 0:
             self.clear_found_ports()
 
-        # (symbol, pin_num, pin_name) = node_tail
         if len(node_tail) != 3:
-            return False
+            raise(ValueError)
+            # return False
 
         # PROCESS FOR THIS ITERATION
         edge = self.tail_to_edge(node_tail, level)
@@ -138,6 +106,7 @@ class PathFinder(SourceReader, SpecialSymbols):
         filtered_next_tail = self.filter_out_terminal_nodes(next_node_tail)
         self.seen.extend(filtered_next_tail)
 
+        # RECURSIVE SEARCH
         if filtered_next_tail:
             level += 1
             for each_node in filtered_next_tail:
@@ -146,7 +115,7 @@ class PathFinder(SourceReader, SpecialSymbols):
         else:
             pass
 
-        return True
+        return self.path
 
     def record_path(self, node, nets, ports):
         for each_port in ports:
@@ -166,11 +135,6 @@ class PathFinder(SourceReader, SpecialSymbols):
         return [x for x in ports if x[0] not in ['[device]', '[tester]', '[WARNING]']]
 
     def tail_to_edge(self, tail, level):
-        '''
-        :param tail: (symbol, pin number, pin name)
-        :param level: +ve integer
-        :return: nets
-        '''
         (t, u, v) = tail
         if str(t) in self.connector_symbols and level > 0:
             n = 'connector'
@@ -181,11 +145,6 @@ class PathFinder(SourceReader, SpecialSymbols):
         return n
 
     def edge_to_head(self, edge, tail):
-        '''
-        :param edge: nets
-        :param tail: (symbol, pin number, pin name)
-        :return: list of (symbol, pin number, pin name)
-        '''
         if edge in ['unconnected']:  # , 'AGND', '+5V', '-5V', 'tester', 'device']:
             return [x for x in self.NETS_DICT[edge] if '[WARNING]' in x]
         elif edge in ['AGND', '+5V', '-5V']:
@@ -194,10 +153,6 @@ class PathFinder(SourceReader, SpecialSymbols):
             return [x for x in self.NETS_DICT[edge] if x != tail]
 
     def head_to_tail(self, head):
-        '''
-        :param head: list of (symbol, pin number, pin name)
-        :return: translated list of (symbol, pin numer, pin name)
-        '''
         all_linked_ports = []
         for each_node in head:
             (symbol, port_num, port_name) = each_node
@@ -229,9 +184,5 @@ class PathFinder(SourceReader, SpecialSymbols):
         return all_linked_ports
 
     def clear_found_ports(self):
-        '''
-        clear seen & path variables, meant for first find_path call.
-        :return: none
-        '''
         self.seen = []
         self.path = []

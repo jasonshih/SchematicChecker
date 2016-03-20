@@ -13,6 +13,7 @@ class SchematicComponent(object):
 
     def __init__(self, standard_type=None):
         self.type = ''
+        self.DNI = False
         self.links = {}
         self.pins = {}
 
