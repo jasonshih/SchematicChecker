@@ -89,8 +89,7 @@ class PathFinder(SourceReader, SpecialSymbols):
             self.clear_found_ports()
 
         if len(node_tail) != 3:
-            raise(ValueError)
-            # return False
+            raise ValueError
 
         # PROCESS FOR THIS ITERATION
         edge = self.tail_to_edge(node_tail, level)

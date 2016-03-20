@@ -38,10 +38,6 @@ class PathCruncher(SpecialSymbols):
         for x in self.path_reference:
             print(x)
 
-    # def set_path_under_test(self, path):
-    #
-    #     self.path_under_test = self.__mask_symbol_and_nets_identifier(path)
-
     def is_multi_site_ok(self, path):
 
         self.path_under_test = self.__mask_symbol_and_nets_identifier(path)
@@ -109,9 +105,9 @@ class PathCruncher(SpecialSymbols):
         final_list = []
         for t in outer_list:
             u = t[2]
-            tail = t[0].split('|')[0]
-            head = t[1].split('|')[0]
-            tailhead = '_'.join([tail, head])
+            # tail = t[0].split('|')[0]
+            # head = t[1].split('|')[0]
+            # tailhead = '_'.join([tail, head])
 
             if pat_plane.search(u):
                 v = u
