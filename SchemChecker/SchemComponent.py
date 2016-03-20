@@ -9,11 +9,13 @@ class SpecialSymbols(object):
         self.tester_symbols.append('AGND')
         self.plane_symbols = ['GND', '+5V', '-5V']
 
+
 class SpecialNets(object):
 
     def __init__(self):
-        self.plane = {'AGND':'[AGND]|00|plane'}
+        self.plane = {'AGND': '[AGND]|00|plane'}
         pass
+
 
 class SchematicComponent(object):
 

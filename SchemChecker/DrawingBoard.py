@@ -1,6 +1,7 @@
 import pygraphviz as p
 from SchemChecker.SchemComponent import *
 
+
 class BlockVisualizer(object):
 
     def __init__(self):
