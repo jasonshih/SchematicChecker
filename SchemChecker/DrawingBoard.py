@@ -71,4 +71,3 @@ class BlockVisualizer(object):
         g.layout(prog='dot')
         g.draw('../output_files/test_file.ps', format='ps')
         pass
-

@@ -53,7 +53,6 @@ if __name__ == "__main__":
         print('tester :' + str(ff.get_tester_nets(oo.path)))
         print('')
 
-
         xx.SYMBOL_DICT = oo.SYMBOL_DICT
         xx.draw()
 
