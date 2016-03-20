@@ -1,11 +1,12 @@
 import re
-from SchemChecker.SchemComponent import SpecialSymbols
+from SchemChecker.SchemComponent import SpecialSymbols, SpecialNets
 
 
-class PathTester(SpecialSymbols):
+class PathTester(SpecialSymbols, SpecialNets):
 
     def __init__(self):
         SpecialSymbols.__init__(self)
+        SpecialNets.__init__(self)
 
         self.path_reference = []
         self.path_under_test = []
@@ -84,38 +85,34 @@ class PathTester(SpecialSymbols):
     def is_connected_to_other_sites(self, path):
         pass
 
-    @staticmethod
-    def get_path_to_ground(path, ground_nets):
-        # TODO consider get path to generic plane
+    def get_path_to_plane(self, path, nets_to_plane):
 
         path_to_gnd = []
-        nets = [x[2] for x in path]
-        gnd_count = nets.count(ground_nets)
+        nets = [x[2].name for x in path]
+        occurrence = nets.count(nets_to_plane)
 
-        # TODO improve logic to find multiple AGND connections.
-        if gnd_count == 0:
+        all_path_to_plane = []
+        if occurrence == 0:
             print('OK: no connections to ground')
 
-        if gnd_count == 1:
-            z = '[AGND]|00|plane'
-            for i in range(len(path) - 1, 0, -1):
-                if path[i][1] == z:
-                    path_to_gnd.insert(0, path[i])
-                    z = path[i][0]
+        else:
+            matches_indexes = (i for i, x in enumerate(nets) if x == nets_to_plane)
+            for index in matches_indexes:
+                z = self.plane[nets_to_plane]
+                for i in range(index, 0, -1):
+                    if path[i][1].name == z:
+                        # pat_str = [str(x) for x in path[i]]
+                        path_to_gnd.insert(0, path[i])
+                        z = path[i][0].name
+                all_path_to_plane.append(path_to_gnd)
 
-        if gnd_count > 1:
-            print('WARNING: more than 1 ground connections found')
-
-        return path_to_gnd
-
-    def get_path_to_supply(self, path):
-        pass
+        return all_path_to_plane
 
     def get_tester_nets(self, path):
-        return {x[2] for x in path if x[2].split('_')[0] in self.tester_symbols}
+        return {x[2] for x in path if x[2].tester_pointer in self.tester_symbols}
 
     def get_device_symbols(self, path):
-        return {y for x in path for y in x[:2] if y.split('|')[0] in self.device_symbols}
+        return {y for x in path for y in x[:2] if y.symbol in self.device_symbols}
 
     def __mask_symbol_and_nets_identifier(self, path):
         pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
@@ -133,10 +130,10 @@ class PathTester(SpecialSymbols):
             inner_list = []
             for y in x[0:2]:
                 # TODO differentiate connector symbols
-                if y.split('|')[0] in self.connector_symbols:
-                    z = pat_symbol_conn.sub('J##|##|IO##', y)
+                if y.symbol in self.connector_symbols:
+                    z = pat_symbol_conn.sub('J##|##|IO##', y.name)
                 else:
-                    z = pat_symbol.sub(self.__replace_last_symbol_char, y)
+                    z = pat_symbol.sub(self.__replace_last_symbol_char, y.name)
                 # print('symbol: ' + y + ' --> ' + z)
                 inner_list.append(z)
             inner_list.append(x[2])
@@ -144,7 +141,7 @@ class PathTester(SpecialSymbols):
 
         final_list = []
         for t in outer_list:
-            u = t[2]
+            u = t[2].name
             # tail = t[0].split('|')[0]
             # head = t[1].split('|')[0]
             # tailhead = '_'.join([tail, head])

@@ -1,5 +1,5 @@
 import pygraphviz as p
-
+from SchemChecker.SchemComponent import *
 
 class BlockVisualizer(object):
 
@@ -17,9 +17,9 @@ class BlockVisualizer(object):
     def draw(self):
         g = p.AGraph(strict=False)
 
-        flatten_path = [y.split('|') for x in self.path for y in x]
-        flatten_nodes = [x for x in flatten_path if len(x) == 3]
-        all_nodes = {x[0] for x in flatten_nodes}
+        flatten_path = [y for x in self.path for y in x]
+        flatten_nodes = [x for x in flatten_path if type(x) is SchematicNode]
+        all_nodes = {x.symbol for x in flatten_nodes}
 
         g.graph_attr['size'] = '7.5,10'
         # g.graph_attr['splines'] = 'polyline'
@@ -30,15 +30,15 @@ class BlockVisualizer(object):
         g.edge_attr['fontsize'] = '8'
 
         for each_node in all_nodes:
-            pins = {'<' + v + '>' + v for t, u, v in flatten_nodes if t == each_node}
+            pins = {'<' + t.pin_name + '>' + t.pin_name for t in flatten_nodes if t.symbol == each_node}
             node_label = '<dft>' + each_node + '|' + '|'.join(pins) + ''
 
             g.add_node(each_node, label=node_label)
 
         for i in self.path:
 
-            tail, _, tail_port = i[0].split('|')
-            head, _, head_port = i[1].split('|')
+            tail, tail_port = i[0].symbol, i[0].pin_name
+            head, head_port = i[1].symbol, i[1].pin_name
             if tail == head:
                 tail_port += ':w'
                 head_port += ':w'

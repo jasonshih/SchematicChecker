@@ -116,12 +116,20 @@ class PathFinder(SourceReader, SpecialSymbols):
 
         return self.path
 
-    def record_path(self, node, nets, ports):
-        for each_port in ports:
-            this_path = ['|'.join(node), '|'.join(each_port), nets]
+    def record_path(self, tail, nets, heads):
+
+        for head in heads:
+            t = SchematicNode(tail)
+            h = SchematicNode(head)
+            e = SchematicEdge(nets)
+            this_path = [t, h, e]
             self.path.append(this_path)
-            # print(this_path)
-            pass
+
+        # for each_port in head:
+        #     this_path = ['|'.join(tail), '|'.join(each_port), nets]
+        #     self.path.append(this_path)
+        #     # print(this_path)
+        #     pass
 
     @staticmethod
     def filter_out_previous_nodes(ports, seen=None):

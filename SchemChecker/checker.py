@@ -29,8 +29,8 @@ if __name__ == "__main__":
     for i in ['X' + str(i) for i in range(4)]:
         # node_under_test = (i, '110', 'MPP3')
         # node_under_test = (i, '114', 'CC1')
-        # node_under_test = (i, '153', 'VREG_L3')
-        node_under_test = (i, '143', 'GPIO7')
+        node_under_test = (i, '153', 'VREG_L3')
+        # node_under_test = (i, '143', 'GPIO7')
         # node_under_test = (i, '90', 'GPIO6')
 
         oo.find_path(node_under_test)
@@ -47,12 +47,15 @@ if __name__ == "__main__":
             ff.is_multi_site_ok(oo.path)
             # combined_path.extend(oo.path)
             # sep_path.update({i: oo.path})
+    #
+        gnd = ff.get_path_to_plane(oo.path, 'AGND')
+        path_to_gnd = [str(z) for x in gnd for y in x for z in y[:2]]
 
-        print(str(ff.get_path_to_ground(oo.path, 'AGND')))
-        print('device :' + str(ff.get_device_symbols(oo.path)))
-        print('tester :' + str(ff.get_tester_nets(oo.path)))
+        print(str(path_to_gnd))
+        print('device :' + str([str(x) for x in ff.get_device_symbols(oo.path)]))
+        print('tester :' + str([str(x) for x in ff.get_tester_nets(oo.path)]))
         print('')
-
+    #
         xx.SYMBOL_DICT = oo.SYMBOL_DICT
         xx.draw()
 
