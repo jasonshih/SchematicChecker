@@ -81,10 +81,10 @@ class PathFinder(SourceReader, SpecialSymbols):
         self.tester_connections = []
         self.device_connections = []
 
-    def find_path(self, node_tail, level=0):
+    def find_path(self, ntail, level=0):
         # main function call for this class. finding path in this format:
         #     TAIL   -- EDGE -- HEAD
-
+        node_tail = ntail.tuple
         if level == 0:
             self.clear_found_ports()
 
@@ -92,101 +92,91 @@ class PathFinder(SourceReader, SpecialSymbols):
             raise ValueError
 
         # PROCESS FOR THIS ITERATION
-        edge = self.tail_to_edge(node_tail, level)
-        node_head = self.edge_to_head(edge, node_tail)
-        self.seen.append(node_tail)
+        edge = self.tail_to_edge(ntail, level)
+        nheads = self.edge_to_head(edge, ntail)
+        self.seen.append(ntail.name)
 
         # RECORD PATH
-        self.record_path(node_tail, edge, node_head)
+        self.record_path(ntail, edge, nheads)
 
         # PROCESS FOR THE NEXT ITERATION
-        filtered_node_head = self.filter_out_previous_nodes(node_head, self.seen)  # A, B, C --> A, B
-        next_node_tail = self.head_to_tail(filtered_node_head)  # A, B --> C, D, E
-        filtered_next_tail = self.filter_out_terminal_nodes(next_node_tail)
-        self.seen.extend(filtered_next_tail)
+        filtered_heads = self.filter_out_previous_nodes(nheads, self.seen)  # A, B, C --> A, B
+        raw_next_tails = self.heads_to_tails(filtered_heads)  # A, B --> C, D, E
+        next_tails = self.filter_out_terminal_nodes(raw_next_tails)
+        self.seen.extend([str(x) for x in next_tails])
 
         # RECURSIVE SEARCH
-        if filtered_next_tail:
+        if next_tails:
             level += 1
-            for each_node in filtered_next_tail:
-                self.find_path(each_node, level)
+            for next_tail in next_tails:
+                self.find_path(next_tail, level)
             level -= 1
         else:
             pass
 
         return self.path
 
-    def record_path(self, tail, nets, heads):
+    def record_path(self, ntail, edge, nheads):
 
-        for head in heads:
-            t = SchematicNode(tail)
-            h = SchematicNode(head)
-            e = SchematicEdge(nets)
-            this_path = [t, h, e]
-            self.path.append(this_path)
-
-        # for each_port in head:
-        #     this_path = ['|'.join(tail), '|'.join(each_port), nets]
-        #     self.path.append(this_path)
-        #     # print(this_path)
-        #     pass
+        for nhead in nheads:
+            self.path.append([ntail, nhead, edge])
 
     @staticmethod
-    def filter_out_previous_nodes(ports, seen=None):
+    def filter_out_previous_nodes(heads, seen=None):
         if seen is None:
             seen = []
-        return [x for x in ports if x not in seen]
+        return [x for x in heads if x.name not in seen]
 
     @staticmethod
-    def filter_out_terminal_nodes(ports):
-        return [x for x in ports if x[0] not in ['[device]', '[tester]', '[WARNING]']]
+    def filter_out_terminal_nodes(heads):
+        return [x for x in heads if x.symbol not in ['[device]', '[tester]', '[WARNING]']]
 
     def tail_to_edge(self, tail, level):
-        (t, u, v) = tail
+        (t, u, v) = tail.tuple
         if str(t) in self.connector_symbols and level > 0:
             n = 'connector'
         elif str(t) in self.device_symbols and level > 0:
             n = 'socket'
         else:
             n = self.SYMBOL_DICT[t].pins[(u, v)]
-        return n
+        return SchematicEdge(n)
 
     def edge_to_head(self, edge, tail):
-        if edge in ['unconnected']:  # , 'AGND', '+5V', '-5V', 'tester', 'device']:
-            return [x for x in self.NETS_DICT[edge] if '[WARNING]' in x]
-        elif edge in ['AGND', '+5V', '-5V']:
-            return [x for x in self.NETS_DICT[edge] if '[' + edge + ']' in x]
+        if edge.name in ['unconnected']:  # , 'AGND', '+5V', '-5V', 'tester', 'device']:
+            return [SchematicNode(x) for x in self.NETS_DICT[edge.name] if '[WARNING]' in x]
+        elif edge.name in ['AGND', '+5V', '-5V']:
+            return [SchematicNode(x) for x in self.NETS_DICT[edge.name] if '[' + edge.name + ']' in x]
         else:
-            return [x for x in self.NETS_DICT[edge] if x != tail]
+            return [SchematicNode(x) for x in self.NETS_DICT[edge.name] if SchematicNode(x) != tail]
 
-    def head_to_tail(self, head):
+    def heads_to_tails(self, heads):
         all_linked_ports = []
-        for each_node in head:
-            (symbol, port_num, port_name) = each_node
+        for head in heads:
+            (symbol, pin_num, pin_name) = head.tuple
 
             if str(symbol) in self.device_symbols:
                 # TERMINAL: device symbol
                 # linked_ports = [('[device]', '[pmic]', '[tangerine]')]
                 # all_linked_ports.extend(linked_ports)
-                # self.record_path(each_node, 'socket', linked_ports)
+                # self.record_path(head, 'socket', linked_ports)
                 pass
 
             elif str(symbol) in self.connector_symbols:
                 # TERMINAL: connector symbol
                 # linked_ports = [('[tester]', '[uflex]', '[8x_config]')]
                 # all_linked_ports.extend(linked_ports)
-                # self.record_path(each_node, 'connector', linked_ports)
+                # self.record_path(head, 'connector', linked_ports)
                 pass
 
             else:
                 # internal connections within symbol
-                states = self.SYMBOL_DICT[symbol].links.keys()
+                states = self.SYMBOL_DICT[head.symbol].links.keys()
                 for state in states:
-                    linked_ports = self.SYMBOL_DICT[symbol].links[state][(port_num, port_name)]
-                    linked_ports = [(symbol, u, v) for (u, v) in linked_ports]
-                    all_linked_ports.extend(linked_ports)
+                    linked_ports = self.SYMBOL_DICT[symbol].links[state][(pin_num, pin_name)]
+                    linked_ports = [SchematicNode((symbol, u, v)) for (u, v) in linked_ports]
+                    self.record_path(head, SchematicEdge(state), linked_ports)
 
-                    self.record_path(each_node, state, linked_ports)
+                    all_linked_ports.extend(linked_ports)
 
         return all_linked_ports
 

@@ -8,7 +8,6 @@ class BlockVisualizer(SpecialSymbols, SpecialNets):
         SpecialSymbols.__init__(self)
         SpecialNets.__init__(self)
         self.path = []
-        self.SYMBOL_DICT = {}
 
     def draw(self):
         g = p.AGraph(strict=False)
@@ -58,8 +57,8 @@ class BlockVisualizer(SpecialSymbols, SpecialNets):
 
         devices = {x for x in all_nodes if x in self.device_symbols}
         bottom_rank = {x for x in all_nodes if x in self.connector_symbols}
-        print(devices)
-        print(bottom_rank)
+        # print(devices)
+        # print(bottom_rank)
         # g.add_subgraph(top_rank, name='planes', rank='min')
         g.add_subgraph(devices, name='device symbol', rank='same')
         g.add_subgraph(bottom_rank, name='tester symbol', rank='max')
