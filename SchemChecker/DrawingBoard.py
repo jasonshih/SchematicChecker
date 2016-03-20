@@ -67,8 +67,8 @@ class BlockVisualizer(object):
         # g.add_subgraph(top_rank, name='planes', rank='min')
         g.add_subgraph(devices, name='device symbol', rank='same')
         g.add_subgraph(bottom_rank, name='tester symbol', rank='max')
-        g.write('test_file.dot')
+        g.write('../output_files/test_file.dot')
         g.layout(prog='dot')
-        g.draw('test_file.ps', format='ps')
+        g.draw('../output_files/test_file.ps', format='ps')
         pass
 

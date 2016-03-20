@@ -2,7 +2,7 @@ import re
 from SchemChecker.SchemComponent import SpecialSymbols
 
 
-class PathCruncher(SpecialSymbols):
+class PathTester(SpecialSymbols):
 
     def __init__(self):
         SpecialSymbols.__init__(self)
@@ -66,16 +66,56 @@ class PathCruncher(SpecialSymbols):
             return False
 
     def is_force_sense_connected(self, path):
+        # TODO improve the force_sense detection logic
+        pat_uvi_f = re.compile('J\d{1,2}_UVI80_\d{1,2}F(\w*)', re.I)
+        pat_uvi_s = re.compile('J\d{1,2}_UVI80_\d{1,2}S(\w*)', re.I)
+
+        f = False
+        s = False
+
+        for p in self.get_tester_nets(path):
+            if pat_uvi_f.match(p) and not f:
+                f = True
+            if pat_uvi_s.match(p) and not s:
+                s = True
+
         pass
 
     def is_connected_to_other_sites(self, path):
         pass
 
+    @staticmethod
+    def get_path_to_ground(path, ground_nets):
+        # TODO consider get path to generic plane
+
+        path_to_gnd = []
+        nets = [x[2] for x in path]
+        gnd_count = nets.count(ground_nets)
+
+        # TODO improve logic to find multiple AGND connections.
+        if gnd_count == 0:
+            print('OK: no connections to ground')
+
+        if gnd_count == 1:
+            z = '[AGND]|00|plane'
+            for i in range(len(path) - 1, 0, -1):
+                if path[i][1] == z:
+                    path_to_gnd.insert(0, path[i])
+                    z = path[i][0]
+
+        if gnd_count > 1:
+            print('WARNING: more than 1 ground connections found')
+
+        return path_to_gnd
+
+    def get_path_to_supply(self, path):
+        pass
+
     def get_tester_nets(self, path):
-        print(str({x[2] for x in path if x[2].split('_')[0] in self.tester_symbols}))
+        return {x[2] for x in path if x[2].split('_')[0] in self.tester_symbols}
 
     def get_device_symbols(self, path):
-        print(str({y for x in path for y in x[:2] if y.split('|')[0] in self.device_symbols}))
+        return {y for x in path for y in x[:2] if y.split('|')[0] in self.device_symbols}
 
     def __mask_symbol_and_nets_identifier(self, path):
         pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
