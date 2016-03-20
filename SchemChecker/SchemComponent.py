@@ -5,16 +5,24 @@ class SpecialSymbols(object):
         self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
         self.device_symbols = ['X' + str(t) for t in range(16)]
         self.tester_symbols = ['J' + str(t) for t in range(0, 54, 2)]
-        # TODO consider [AGND]
-        self.tester_symbols.append('AGND')
-        self.plane_symbols = ['GND', '+5V', '-5V']
+        self.plane_symbols = ['[AGND]', '[+5V]', '[-5V]']
+        self.terminal_symbols = ['[WARNING]', '[device]', '[tester]']
 
 
 class SpecialNets(object):
 
     def __init__(self):
-        self.plane = {'AGND': '[AGND]|00|plane'}
-        pass
+        self.plane = {
+            'AGND': '[AGND]|00|plane',
+            '+5V': '[+5V]|00|plane',
+            '-5V': '[-5V]|00|plane',
+            '+5V_RLY': '[+5V_RLY]|00|plane',
+            'P5V': '[P5V]|00|plane',
+            'N5V': '[N5V]|00|plane',
+            'P15V': '[P15V]|00|plane',
+            'N15V': '[N15V]|00|plane',
+            'unconnected': '[WARNING]|00|terminal'
+        }
 
 
 class SchematicComponent(object):

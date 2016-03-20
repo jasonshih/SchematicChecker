@@ -2,18 +2,13 @@ import pygraphviz as p
 from SchemChecker.SchemComponent import *
 
 
-class BlockVisualizer(object):
+class BlockVisualizer(SpecialSymbols, SpecialNets):
 
     def __init__(self):
+        SpecialSymbols.__init__(self)
+        SpecialNets.__init__(self)
         self.path = []
         self.SYMBOL_DICT = {}
-
-        # TODO: handle these better!
-        self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
-        self.connector_symbols.extend(['[AGND]', '[WARNING]'])
-        self.device_symbols = ['X' + str(t) for t in range(16)]
-        self.tester_symbols = ['J' + str(t) for t in range(0, 54, 2)]
-        self.tester_symbols.append('AGND')
 
     def draw(self):
         g = p.AGraph(strict=False)
