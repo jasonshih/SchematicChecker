@@ -1,12 +1,12 @@
-import SchemChecker.PathFinder as pF
-import SchemChecker.DrawingBoard as bV
-import SchemChecker.SymbolNetsAnalyzer as pA
+from .PathFinder import PathFinder
+from .DrawingBoard import BlockVisualizer
+from .SymbolNetsAnalyzer import PathCruncher
 
 if __name__ == "__main__":
 
-    oo = pF.PathFinder()
-    xx = bV.BlockVisualizer()
-    ff = pA.PathCruncher()
+    oo = PathFinder()
+    xx = BlockVisualizer()
+    ff = PathCruncher()
 
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     oo.read_xlsx(xlsx_file)

@@ -1,11 +1,12 @@
 import re
+from .SchemComponent import SpecialSymbols
 
 
-class PathCruncher(object):
+class PathCruncher(SpecialSymbols):
 
     def __init__(self):
+        SpecialSymbols.__init__(self)
         # TODO maintain single assignment for connector symbols
-        self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
         self.path_reference = []
         self.path_under_test = []
 

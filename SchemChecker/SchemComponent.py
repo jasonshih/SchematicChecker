@@ -1,4 +1,14 @@
 
+class SpecialSymbols(object):
+
+    def __init__(self):
+        self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
+        self.device_symbols = ['X' + str(t) for t in range(16)]
+        self.tester_symbols = ['J' + str(t) for t in range(0, 54, 2)]
+        self.tester_symbols.append('AGND')
+        self.plane_symbols = ['GND', '+5V', '-5V']
+
+
 class SchematicComponent(object):
 
     def __init__(self, standard_type=None):
