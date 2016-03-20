@@ -1,3 +1,5 @@
+import re
+
 
 class SpecialSymbols(object):
 
@@ -32,64 +34,99 @@ class SchematicComponent(object):
         self.links = {}
         self.pins = {}
 
+        self.standard_links = {}
+        self.import_standard_link()
+
         # TODO: simplify the hell out of this.
         if standard_type == 'plane':
             self.pins.update({
                 ('00', 'plane'): ''
             })
-            self.links.update({
-                    'na': {
-                        ('00', 'plane'): []
-                    }
-                })
+            self.links = self.standard_links['plane']
+            # self.links.update({
+            #         'na': {
+            #             ('00', 'plane'): []
+            #         }
+            #     })
 
         elif standard_type == 'terminal':
             self.pins.update({
                 ('00', 'plane'): ''
             })
-            self.links.update({
-                    'na': {
-                        ('00', 'terminal'): []
-                    }
-                })
+            self.links = self.standard_links['terminal']
+            # self.links.update({
+            #         'na': {
+            #             ('00', 'terminal'): []
+            #         }
+            #     })
 
         elif standard_type == 'std_8pins_relay':
-            self.links.update(
-                {
-                    'off': {('1', 'N1'): [('8', 'N2')],
-                            ('2', 'S1'): [('3', 'COM1')],
-                            ('3', 'COM1'): [('2', 'S1')],
-                            ('4', 'S2'): [],
-                            ('5', 'S4'): [],
-                            ('6', 'COM2'): [('7', 'S3')],
-                            ('7', 'S3'): [('6', 'COM2')],
-                            ('8', 'N2'): [('1', 'N1')]}
-                })
-            self.links.update(
-                {
-                    'on': {('1', 'N1'): [('8', 'N2')],
-                           ('2', 'S1'): [],
-                           ('3', 'COM1'): [('4', 'S2')],
-                           ('4', 'S2'): [('3', 'COM1')],
-                           ('5', 'S4'): [('6', 'COM2')],
-                           ('6', 'COM2'): [('5', 'S4')],
-                           ('7', 'S3'): [],
-                           ('8', 'N2'): [('1', 'N1')]}
-                })
+            self.links = self.standard_links['std_8pins_relay']
+            # self.links.update(
+            #     {
+            #         'off': {('1', 'N1'): [('8', 'N2')],
+            #                 ('2', 'S1'): [('3', 'COM1')],
+            #                 ('3', 'COM1'): [('2', 'S1')],
+            #                 ('4', 'S2'): [],
+            #                 ('5', 'S4'): [],
+            #                 ('6', 'COM2'): [('7', 'S3')],
+            #                 ('7', 'S3'): [('6', 'COM2')],
+            #                 ('8', 'N2'): [('1', 'N1')]}
+            #     })
+            # self.links.update(
+            #     {
+            #         'on': {('1', 'N1'): [('8', 'N2')],
+            #                ('2', 'S1'): [],
+            #                ('3', 'COM1'): [('4', 'S2')],
+            #                ('4', 'S2'): [('3', 'COM1')],
+            #                ('5', 'S4'): [('6', 'COM2')],
+            #                ('6', 'COM2'): [('5', 'S4')],
+            #                ('7', 'S3'): [],
+            #                ('8', 'N2'): [('1', 'N1')]}
+            #     })
 
         elif standard_type == 'std_2pins_passive':
-            self.links.update(
-                {
-                    'na': {('1', 'POS'): [('2', 'NEG')],
-                           ('2', 'NEG'): [('1', 'POS')]}
-                })
+            self.links = self.standard_links['std_2pins_passive']
+            # self.links.update(
+            #     {
+            #         'na': {('1', 'POS'): [('2', 'NEG')],
+            #                ('2', 'NEG'): [('1', 'POS')]}
+            #     })
 
         elif standard_type == 'jumper':
-            self.links.update(
-                {
-                    'na': {('1', 'IO1'): [('2', 'IO2')],
-                           ('2', 'IO2'): [('1', 'IO1')]}
-                })
+            self.links = self.standard_links['jumper']
+            # self.links.update(
+            #     {
+            #         'na': {('1', 'IO1'): [('2', 'IO2')],
+            #                ('2', 'IO2'): [('1', 'IO1')]}
+            #     })
+
+    def import_standard_link(self, input_txt='component_links.txt'):
+        pat_pins = re.compile('\((\w+),\s*(\w+)\)')
+        pat_type = re.compile('\<(\w+)\>')
+        part_type, state, tail, heads = '', '', '', []
+        with open(input_txt, mode='rt', encoding='utf-8') as fin:
+            for ln in fin:
+                if ln.startswith(';'):
+                    pass
+                elif ln.startswith('<'):
+                    part_type = pat_type.match(ln).group(1).strip()
+                elif (':' in ln):
+                    (s, link) = ln.split(':')
+                    state = s.strip()
+                    (t, h) = link.split('--')
+
+                    [tail] = pat_pins.findall(t)
+                    heads = pat_pins.findall(h)
+
+                if part_type and state and tail:
+                    self.standard_links.update({part_type:{state:{tail:heads}}})
+                    pass
+
+                    # pat_type = re.compile('([<]\w+[>])')
+                    # pat_link = re.compile('(\w+):()--()')
+
+                    # self.standard_links.update()
 
 
 class SchematicSymbol(SchematicComponent):

@@ -1,0 +1,34 @@
+;<type>
+;state: pin -- next_pin, next_pin, next_pin
+
+<plane>
+always : (00, plane) -- None
+
+<terminal>
+always: (00, terminal) -- None
+
+<std_2pins_passive>
+always: (1, POS) -- (2, NEG)
+always: (2, NEG) -- (1, POS)
+
+<std_8pins_relay>
+off: (1, N1) -- (8, N2)
+off: (2, S1) -- (3, COM1)
+off: (3, COM1) -- (2, S1)
+off: (4, S2) -- None
+off: (5, S4) -- None
+off: (6, COM2) -- (7, S3)
+off: (7, S3) -- (6, COM2)
+off: (8, N2) -- (1, N1)
+on: (1, N1) -- (8, N2)
+on: (2, S1) -- None
+on: (3, COM1) -- (4, S2)
+on: (4, S2) -- (3, COM1)
+on: (5, S4) -- (6, COM2)
+on: (6, COM2) -- (5, S4)
+on: (7, S3) -- None
+on: (8, N2) -- (1, N1)
+
+<jumper>
+always: (1, IO1) -- (2, IO2)
+always: (2, IO2) -- (1, IO1)
