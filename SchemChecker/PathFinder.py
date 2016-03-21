@@ -21,6 +21,7 @@ class SourceReader(object):
         pass
 
     def read_xlsx(self, file_name):
+        print('importing schematic symbol & nets database...')
         wb = load_workbook(file_name)
         ws = wb.get_active_sheet()
         cc = ''
@@ -93,7 +94,7 @@ class PathFinder(SourceReader, SpecialSymbols):
 
         # PROCESS FOR THIS ITERATION
         edge = self.tail_to_edge(ntail, level)
-        nheads = self.edge_to_head(edge, ntail)
+        nheads = self.edge_to_heads(edge, ntail)
         self.seen.append(ntail.name)
 
         # RECORD PATH
@@ -116,21 +117,6 @@ class PathFinder(SourceReader, SpecialSymbols):
 
         return self.path
 
-    def record_path(self, ntail, edge, nheads):
-
-        for nhead in nheads:
-            self.path.append([ntail, nhead, edge])
-
-    @staticmethod
-    def filter_out_previous_nodes(heads, seen=None):
-        if seen is None:
-            seen = []
-        return [x for x in heads if x.name not in seen]
-
-    @staticmethod
-    def filter_out_terminal_nodes(heads):
-        return [x for x in heads if x.symbol not in ['[device]', '[tester]', '[WARNING]']]
-
     def tail_to_edge(self, tail, level):
         (t, u, v) = tail.tuple
         if str(t) in self.connector_symbols and level > 0:
@@ -141,7 +127,7 @@ class PathFinder(SourceReader, SpecialSymbols):
             n = self.SYMBOL_DICT[t].pins[(u, v)]
         return SchematicEdge(n)
 
-    def edge_to_head(self, edge, tail):
+    def edge_to_heads(self, edge, tail):
         if edge.name in ['unconnected']:  # , 'AGND', '+5V', '-5V', 'tester', 'device']:
             return [SchematicNode(x) for x in self.NETS_DICT[edge.name] if '[WARNING]' in x]
         elif edge.name in ['AGND', '+5V', '-5V']:
@@ -179,6 +165,20 @@ class PathFinder(SourceReader, SpecialSymbols):
                     all_linked_ports.extend(linked_ports)
 
         return all_linked_ports
+
+    @staticmethod
+    def filter_out_terminal_nodes(heads):
+        return [x for x in heads if x.symbol not in ['[device]', '[tester]', '[WARNING]']]
+
+    @staticmethod
+    def filter_out_previous_nodes(heads, seen=None):
+        if seen is None:
+            seen = []
+        return [x for x in heads if x.name not in seen]
+
+    def record_path(self, ntail, edge, nheads):
+        for nhead in nheads:
+            self.path.append([ntail, nhead, edge])
 
     def clear_found_ports(self):
         self.seen = []
