@@ -55,8 +55,8 @@ class SourceReader(object):
                         cc = oo.id
 
                 if "Property:" in str(cell.value):
-                    # TODO get DNI property
-                    pass
+                    if 'Part List Exclude=DNI' in str(cell.value):
+                        self.SYMBOL_DICT[cc].dni = True
 
                 if "Explicit Pin:" in str(cell.value):
                     ep = str(cell.value).strip().replace('\'', '').split(' ')

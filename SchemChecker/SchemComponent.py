@@ -88,7 +88,8 @@ class SchematicSymbol(SchematicComponent):
         SchematicComponent.__init__(self, standard_type)
         self.id = ''
         self.state = []
-        self.DNI = False
+        self.dni = False
+        self.site = 0
 
 
 class SchematicNode:
@@ -97,7 +98,8 @@ class SchematicNode:
         (self.symbol, self.pin_number, self.pin_name) = symbol_and_pins
         self.tuple = symbol_and_pins
         self.name = '|'.join(symbol_and_pins)
-        self.DNI = False
+        self.dni = False
+        self.site = 0
 
     def __str__(self):
         return self.name
@@ -107,6 +109,7 @@ class SchematicEdge:
 
     def __init__(self, nets):
         self.name = nets
+        self.site = 0
         self.tester_pointer = self.name.split('_')[0]
 
     def __str__(self):
