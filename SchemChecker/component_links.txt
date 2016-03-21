@@ -2,14 +2,14 @@
 ;state: pin -- next_pin, next_pin, next_pin
 
 <plane>
-always : (00, plane) -- None
+internal: (00, plane) -- None
 
 <terminal>
-always: (00, terminal) -- None
+internal: (00, terminal) -- None
 
 <std_2pins_passive>
-always: (1, POS) -- (2, NEG)
-always: (2, NEG) -- (1, POS)
+internal: (1, POS) -- (2, NEG)
+internal: (2, NEG) -- (1, POS)
 
 <std_8pins_relay>
 off: (1, N1) -- (8, N2)
@@ -30,5 +30,5 @@ on: (7, S3) -- None
 on: (8, N2) -- (1, N1)
 
 <jumper>
-always: (1, IO1) -- (2, IO2)
-always: (2, IO2) -- (1, IO1)
+internal: (1, IO1) -- (2, IO2)
+internal: (2, IO2) -- (1, IO1)

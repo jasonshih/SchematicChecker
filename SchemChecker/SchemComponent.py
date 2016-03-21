@@ -51,7 +51,7 @@ class SchematicComponent:
     def import_standard_link(self, input_txt='component_links.txt'):
         ss = self.standard_links
         pat_pins = re.compile('\((\w+),\s*(\w+)\)')
-        pat_type = re.compile('\<(\w+)\>')
+        pat_type = re.compile('<(\w+)>')
         # part_type, state, tail, heads = '', '', '', []
         with open(input_txt, mode='rt', encoding='utf-8') as fin:
             for ln in fin:
@@ -60,7 +60,7 @@ class SchematicComponent:
                 elif ln.startswith('<'):
                     part_type = pat_type.match(ln).group(1).strip()
                     # state, tail, heads = '', '', []
-                elif (':' in ln):
+                elif ':' in ln:
                     (s, link) = ln.split(':')
                     (t, h) = link.split('--')
 
