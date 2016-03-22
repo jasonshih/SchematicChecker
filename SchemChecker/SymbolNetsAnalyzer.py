@@ -1,10 +1,12 @@
 import re
+import logging
 from SchemChecker.SchemComponent import SpecialSymbols, SpecialNets
 
 
 class PathTester(SpecialSymbols, SpecialNets):
 
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         SpecialSymbols.__init__(self)
         SpecialNets.__init__(self)
 
@@ -101,7 +103,6 @@ class PathTester(SpecialSymbols, SpecialNets):
                 z = self.plane[nets_to_plane]
                 for i in range(index, 0, -1):
                     if path[i][1].name == z:
-                        # pat_str = [str(x) for x in path[i]]
                         path_to_gnd.insert(0, path[i])
                         z = path[i][0].name
                 all_path_to_plane.append(path_to_gnd)
@@ -150,25 +151,19 @@ class PathTester(SpecialSymbols, SpecialNets):
                 v = u
             elif pat_hidden.search(u):
                 v = pat_hidden.sub(r'hidden', u)
-                # v = pat_hidden.sub(r'hidden_@' + tailhead, u)
             elif pat_site.search(u):
                 v = pat_site.sub(r'S##\1', u)
-                # v = pat_site.sub(r'S##\1_@' + tailhead, u)
             elif pat_udb.search(u):
                 v = pat_udb.sub(r'UDB##', u)
-                # v = pat_udb.sub(r'UDB##_@' + tailhead, u)
             elif pat_uvi.search(u):
                 v = pat_uvi.sub(r'J##_UVI80_##\1', u)
-                # v = pat_uvi.sub(r'J##_UVI80_##\1_@' + tailhead, u)
             elif pat_hsd.search(u):
                 v = pat_hsd.sub(r'J##_HSD_###', u)
-                # v = pat_hsd.sub(r'J##_HSD_###_@' + tailhead, u)
             elif pat_common.search(u):
                 v = pat_common.sub(r'\1', u)
-                # v = pat_common.sub(r'\1_@' + tailhead, u)
             else:
                 v = u
-                print('WARNING: unknown nets type')
+                self.logger.warn('unknown nets type: %s', v)
             # print('nets: '+ u + ' --> ' + v)
 
             final_list.append([t[0], t[1], v])

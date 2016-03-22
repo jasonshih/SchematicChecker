@@ -2,12 +2,17 @@ from SchemChecker.PathFinder import PathFinder
 from SchemChecker.DrawingBoard import BlockVisualizer
 from SchemChecker.SymbolNetsAnalyzer import PathTester
 from SchemChecker.SchemComponent import *
+import logging
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger(__name__)
 
     oo = PathFinder()
     xx = BlockVisualizer()
     ff = PathTester()
+
+    # logger.setLevel(logging.DEBUG)
 
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     oo.read_xlsx(xlsx_file)

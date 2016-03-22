@@ -1,10 +1,12 @@
 from openpyxl import load_workbook
 from SchemChecker.SchemComponent import *
+import logging
 
 
 class SourceReader(object):
 
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         self.SYMBOL_DICT = {
             '[AGND]': SchematicSymbol('plane'),
             '[+5V]': SchematicSymbol('plane'),
@@ -18,10 +20,10 @@ class SourceReader(object):
             'AGND': [('[AGND]', '00', 'plane')],
             'unconnected': [('[WARNING]', '00', 'terminal')],
         }
-        pass
 
     def read_xlsx(self, file_name):
-        print('importing schematic symbol & nets database...')
+        self.logger.info('importing schematic symbol and nets database...')
+        # print('importing schematic symbol & nets database...')
         wb = load_workbook(file_name)
         ws = wb.get_active_sheet()
         cc = ''
@@ -47,7 +49,8 @@ class SourceReader(object):
                         else:
                             oo = SchematicSymbol()
                             if ch[1] not in unknown_parts:
-                                print('unknown part type: ' + ch[1])
+                                self.logger.warn('reading... unknown type: %s', ch[1])
+                                # print('unknown part type: ' + ch[1])
                                 unknown_parts.append(ch[1])
 
                         [_, oo.type, oo.id] = ch
@@ -69,11 +72,13 @@ class SourceReader(object):
                             self.NETS_DICT[nets].append((cc, pin_num, pin_name))
                         else:
                             self.NETS_DICT.update({nets: [(cc, pin_num, pin_name)]})
+        self.logger.info('importing schematic symbol and nets database done!')
 
 
 class PathFinder(SourceReader, SpecialSymbols):
 
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         SourceReader.__init__(self)
         SpecialSymbols.__init__(self)
         self.seen = []
@@ -85,6 +90,8 @@ class PathFinder(SourceReader, SpecialSymbols):
     def find_path(self, ntail, level=0):
         # main function call for this class. finding path in this format:
         #     TAIL   -- EDGE -- HEAD
+        self.logger.debug('finding path for %s, at level %s', ntail.symbol, level)
+
         node_tail = ntail.tuple
         if level == 0:
             self.clear_found_ports()
@@ -181,5 +188,7 @@ class PathFinder(SourceReader, SpecialSymbols):
             self.path.append([ntail, nhead, edge])
 
     def clear_found_ports(self):
+        # self.logger.debug('clearing self.seen and self.path ...')
+
         self.seen = []
         self.path = []

@@ -1,5 +1,5 @@
+import logging
 import re
-
 
 class SpecialSymbols:
 
@@ -32,12 +32,12 @@ class SchematicComponent:
     standard_links = {}
 
     def __init__(self, standard_type=None):
+        self.logger = logging.getLogger(__name__)
         self.type = ''
         self.links = {}
         self.pins = {}
 
         if not self.standard_links:
-            print('importing component link database...')
             self.import_standard_link()
 
         if standard_type in self.standard_links.keys():
@@ -49,6 +49,8 @@ class SchematicComponent:
             })
 
     def import_standard_link(self, input_txt='component_links.txt'):
+
+        self.logger.info('importing component link database...')
         ss = self.standard_links
         pat_pins = re.compile('\((\w+),\s*(\w+)\)')
         pat_type = re.compile('<(\w+)>')
@@ -72,7 +74,7 @@ class SchematicComponent:
                     s_th = {state: th}
 
                     if part_type and state and tail:
-                        # print(': '.join([part_type, state, str(tail), str(heads)]))
+                        self.logger.debug('reading... %s, %s', part_type, s_th)
                         if part_type not in ss.keys():
                             ss.update({part_type: s_th})
                         else:
@@ -80,6 +82,8 @@ class SchematicComponent:
                                 ss[part_type][state].update(th)
                             else:
                                 ss[part_type].update(s_th)
+        self.logger.info('importing component link database done!')
+
 
 
 class SchematicSymbol(SchematicComponent):

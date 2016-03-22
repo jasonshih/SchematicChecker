@@ -1,15 +1,17 @@
 import pygraphviz as p
 from SchemChecker.SchemComponent import *
-
+import logging
 
 class BlockVisualizer(SpecialSymbols, SpecialNets):
 
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         SpecialSymbols.__init__(self)
         SpecialNets.__init__(self)
         self.path = []
 
     def draw(self):
+        self.logger.info('drawing ...')
         g = p.AGraph(strict=False)
 
         flatten_path = [y for x in self.path for y in x]
