@@ -34,7 +34,7 @@ class PathTester(SpecialSymbols, SpecialNets):
 
         print('original reference path:')
         for x in path:
-            print(x)
+            print(', '.join([x[0].name, x[1].name, x[2].name]))
 
         print('')
         print('masked reference path:')
@@ -45,13 +45,15 @@ class PathTester(SpecialSymbols, SpecialNets):
 
         self.path_under_test = self.__mask_symbol_and_nets_identifier(path)
 
-        if self.path_reference == self.path_under_test:
+        reference = set(map(tuple, self.path_reference))
+        response = set(map(tuple, self.path_under_test))
+
+        if reference == response:
             print('OK: multi site compare')
             return True
         else:
             if self.path_reference.__len__() != self.path_under_test.__len__():
                 print('WARNING: different number of path')
-
                 for i in range(self.path_under_test.__len__()):
                     if self.path_under_test[i] in self.path_reference:
                         pass
@@ -61,28 +63,43 @@ class PathTester(SpecialSymbols, SpecialNets):
             else:
                 print('WARNING: same number of path but not equal')
                 for i in range(self.path_under_test.__len__()):
-                    if self.path_reference[i] == self.path_under_test[i]:
-                        pass
-                    else:
-                        print(str(i) + ' ref: ' + str(self.path_reference[i]))
-                        print(str(i) + ' res: ' + str(self.path_under_test[i]))
+                    if self.path_under_test[i] not in self.path_reference:
+                        print(str(i) + ' no match found: ' + str(self.path_under_test[i]))
+
             return False
 
-    def is_force_sense_connected(self, path):
-        # TODO improve the force_sense detection logic
-        pat_uvi_f = re.compile('J\d{1,2}_UVI80_\d{1,2}F(\w*)', re.I)
-        pat_uvi_s = re.compile('J\d{1,2}_UVI80_\d{1,2}S(\w*)', re.I)
+    def get_uvi_force_sense_merging_point(self, SYMBOL_DICT, NETS_DICT):
+        # self.logger.setLevel(logging.DEBUG)
+        pat_uvi_f = re.compile('(J\d{1,2}_UVI80_\d{1,2})S(\w*)', re.I)
 
-        f = False
-        s = False
+        no_list = self.connector_symbols.copy()
+        no_list.extend(self.device_symbols)
 
-        for p in self.get_tester_nets(path):
-            if pat_uvi_f.match(p) and not f:
-                f = True
-            if pat_uvi_s.match(p) and not s:
-                s = True
+        uvi_forces = [x for x in NETS_DICT.keys() if pat_uvi_f.match(x)]
 
-        pass
+        ok_list = []
+        for uvi_force in uvi_forces:
+            symbols = [x[0] for x in NETS_DICT[uvi_force] if x[0] not in no_list]
+            prefix = pat_uvi_f.match(uvi_force).group(1)
+            posfix = pat_uvi_f.match(uvi_force).group(2)
+            uvi_sense = prefix + 'F' + posfix
+
+            merging_symbol = (uvi_force, uvi_sense, '[PART_NOT_FOUND]', 'DNI: N.A.')
+            for symbol in symbols:
+                nets_at_symbol = list(SYMBOL_DICT[symbol].pins.values())
+                if uvi_force in nets_at_symbol and uvi_sense in nets_at_symbol:
+                    merging_symbol = (uvi_force, uvi_sense, symbol, 'DNI: ' + str(SYMBOL_DICT[symbol].dni))
+                    self.logger.debug(merging_symbol)
+            ok_list.append(merging_symbol)
+
+        bad_list = [x for x in ok_list if '[PART_NOT_FOUND]' in x or 'True' in x[3]]
+
+        # self.logger.setLevel(logging.INFO)
+        if bad_list:
+            for x in bad_list:
+                self.logger.warn('FORCE_SENSE not connected at %s -- %s, %s %s', x[0], x[1], x[2], x[3])
+
+        return ok_list
 
     def is_connected_to_other_sites(self, path):
         pass
@@ -107,7 +124,11 @@ class PathTester(SpecialSymbols, SpecialNets):
                         z = path[i][0].name
                 all_path_to_plane.append(path_to_gnd)
 
-        return all_path_to_plane
+        symbols = [str(z) for x in all_path_to_plane for y in x for z in y[:2]]
+        seen = set()
+        cleaned_symbols = [x for x in symbols if not (x in seen or seen.add(x))]
+
+        return cleaned_symbols
 
     def get_tester_nets(self, path):
         return {x[2] for x in path if x[2].tester_pointer in self.tester_symbols}
@@ -116,6 +137,7 @@ class PathTester(SpecialSymbols, SpecialNets):
         return {y for x in path for y in x[:2] if y.symbol in self.device_symbols}
 
     def __mask_symbol_and_nets_identifier(self, path):
+        # self.logger.setLevel(logging.DEBUG)
         pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
         pat_symbol_conn = re.compile('^J\d+([\w|]+)IO\d+', re.I)
         pat_plane = re.compile('-5V|\+5V|\+5V_RLY|AGND|P5V|P15V|N15V|N5V', re.I)
@@ -135,7 +157,7 @@ class PathTester(SpecialSymbols, SpecialNets):
                     z = pat_symbol_conn.sub('J##|##|IO##', y.name)
                 else:
                     z = pat_symbol.sub(self.__replace_last_symbol_char, y.name)
-                # print('symbol: ' + y + ' --> ' + z)
+                self.logger.debug('symbol: ' + y.name + ' --> ' + z)
                 inner_list.append(z)
             inner_list.append(x[2])
             outer_list.append(inner_list)
@@ -167,6 +189,7 @@ class PathTester(SpecialSymbols, SpecialNets):
             # print('nets: '+ u + ' --> ' + v)
 
             final_list.append([t[0], t[1], v])
+        # self.logger.setLevel(logging.INFO)
         return final_list
 
     @staticmethod
@@ -175,3 +198,10 @@ class PathTester(SpecialSymbols, SpecialNets):
             return re.sub('([a-zA-Z]+)[0-9]+\|', '\\1##|', match_obj.group(0))
         else:
             return re.sub('([a-zA-Z]+[0-9]+)[a-zA-Z]+\|', '\\1#|', match_obj.group(0))
+
+    #
+    # def debug_log(f):
+    #     def decorator():
+    #         logging.basicConfig(level=logging.DEBUG)
+    #         f()
+    #         logging.basicConfig(level=logging.INFO)

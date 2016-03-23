@@ -147,29 +147,25 @@ class PathFinder(SourceReader, SpecialSymbols):
         for head in heads:
             (symbol, pin_num, pin_name) = head.tuple
 
-            if str(symbol) in self.device_symbols:
-                # TERMINAL: device symbol
-                # linked_ports = [('[device]', '[pmic]', '[tangerine]')]
-                # all_linked_ports.extend(linked_ports)
-                # self.record_path(head, 'socket', linked_ports)
-                pass
+            if not self.SYMBOL_DICT[symbol].dni:
+                if str(symbol) in [self.device_symbols, self.connector_symbols]:
+                    # TERMINAL: device symbol
+                    # linked_ports = [('[device]', '[pmic]', '[tangerine]')]
+                    # all_linked_ports.extend(linked_ports)
+                    # self.record_path(head, 'socket', linked_ports)
+                    pass
 
-            elif str(symbol) in self.connector_symbols:
-                # TERMINAL: connector symbol
-                # linked_ports = [('[tester]', '[uflex]', '[8x_config]')]
-                # all_linked_ports.extend(linked_ports)
-                # self.record_path(head, 'connector', linked_ports)
-                pass
+                else:
+                    # internal connections within symbol
+                    states = self.SYMBOL_DICT[head.symbol].links.keys()
+                    for state in states:
+                        linked_ports = self.SYMBOL_DICT[symbol].links[state][(pin_num, pin_name)]
+                        linked_ports = [SchematicNode((symbol, u, v)) for (u, v) in linked_ports]
+                        self.record_path(head, SchematicEdge(state), linked_ports)
 
+                        all_linked_ports.extend(linked_ports)
             else:
-                # internal connections within symbol
-                states = self.SYMBOL_DICT[head.symbol].links.keys()
-                for state in states:
-                    linked_ports = self.SYMBOL_DICT[symbol].links[state][(pin_num, pin_name)]
-                    linked_ports = [SchematicNode((symbol, u, v)) for (u, v) in linked_ports]
-                    self.record_path(head, SchematicEdge(state), linked_ports)
-
-                    all_linked_ports.extend(linked_ports)
+                self.logger.info('DNI: symbol %s', symbol)
 
         return all_linked_ports
 
@@ -189,6 +185,18 @@ class PathFinder(SourceReader, SpecialSymbols):
 
     def clear_found_ports(self):
         # self.logger.debug('clearing self.seen and self.path ...')
-
         self.seen = []
         self.path = []
+
+    def get_nodes_with_pin(self, symbol, pin):
+
+        lst = self.SYMBOL_DICT[symbol].pins.keys()
+        nodes = [SchematicNode((symbol, x, y)) for x, y in lst if x == pin or y == pin]
+
+        if len(nodes) > 1:
+            self.logger.warn('multiple nodes found on %s with pin = %s', symbol, pin)
+        if len(nodes) == 0:
+            self.logger.error('zero nodes found on %s with pin = %s', symbol, pin)
+            raise ValueError
+
+        return nodes
