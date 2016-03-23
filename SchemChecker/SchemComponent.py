@@ -1,6 +1,7 @@
 import logging
 import re
 
+
 class SpecialSymbols:
 
     def __init__(self):
@@ -85,7 +86,6 @@ class SchematicComponent:
         self.logger.info('importing component link database done!')
 
 
-
 class SchematicSymbol(SchematicComponent):
 
     def __init__(self, standard_type=None):
@@ -108,6 +108,9 @@ class SchematicNode:
     def __str__(self):
         return self.name
 
+    def __repr__(self):
+        return '<node>:' + self.name
+
 
 class SchematicEdge:
 
@@ -118,3 +121,6 @@ class SchematicEdge:
 
     def __str__(self):
         return self.name
+
+    def __repr__(self):
+        return '<edge>: ' + self.name

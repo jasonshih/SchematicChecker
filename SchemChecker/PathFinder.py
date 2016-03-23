@@ -82,10 +82,10 @@ class PathFinder(SourceReader, SpecialSymbols):
         SourceReader.__init__(self)
         SpecialSymbols.__init__(self)
         self.seen = []
-        self.path = []
-        self.tab = ''
-        self.tester_connections = []
-        self.device_connections = []
+        self.path_obj = []
+        # self.tab = ''
+        # self.tester_connections = []
+        # self.device_connections = []
 
     def find_path(self, ntail, level=0):
         # main function call for this class. finding path in this format:
@@ -105,7 +105,7 @@ class PathFinder(SourceReader, SpecialSymbols):
         self.seen.append(ntail.name)
 
         # RECORD PATH
-        self.record_path(ntail, edge, nheads)
+        self.record_path_obj(ntail, edge, nheads)
 
         # PROCESS FOR THE NEXT ITERATION
         filtered_heads = self.filter_out_previous_nodes(nheads, self.seen)  # A, B, C --> A, B
@@ -122,7 +122,7 @@ class PathFinder(SourceReader, SpecialSymbols):
         else:
             pass
 
-        return self.path
+        return self.path_obj
 
     def tail_to_edge(self, tail, level):
         (t, u, v) = tail.tuple
@@ -140,7 +140,7 @@ class PathFinder(SourceReader, SpecialSymbols):
         elif edge.name in ['AGND', '+5V', '-5V']:
             return [SchematicNode(x) for x in self.NETS_DICT[edge.name] if '[' + edge.name + ']' in x]
         else:
-            return [SchematicNode(x) for x in self.NETS_DICT[edge.name] if SchematicNode(x) != tail]
+            return [SchematicNode(x) for x in self.NETS_DICT[edge.name] if SchematicNode(x).name != tail.name]
 
     def heads_to_tails(self, heads):
         all_linked_ports = []
@@ -152,7 +152,7 @@ class PathFinder(SourceReader, SpecialSymbols):
                     # TERMINAL: device symbol
                     # linked_ports = [('[device]', '[pmic]', '[tangerine]')]
                     # all_linked_ports.extend(linked_ports)
-                    # self.record_path(head, 'socket', linked_ports)
+                    # self.record_path_obj(head, 'socket', linked_ports)
                     pass
 
                 else:
@@ -161,7 +161,7 @@ class PathFinder(SourceReader, SpecialSymbols):
                     for state in states:
                         linked_ports = self.SYMBOL_DICT[symbol].links[state][(pin_num, pin_name)]
                         linked_ports = [SchematicNode((symbol, u, v)) for (u, v) in linked_ports]
-                        self.record_path(head, SchematicEdge(state), linked_ports)
+                        self.record_path_obj(head, SchematicEdge(state), linked_ports)
 
                         all_linked_ports.extend(linked_ports)
             else:
@@ -179,14 +179,14 @@ class PathFinder(SourceReader, SpecialSymbols):
             seen = []
         return [x for x in heads if x.name not in seen]
 
-    def record_path(self, ntail, edge, nheads):
+    def record_path_obj(self, ntail, edge, nheads):
         for nhead in nheads:
-            self.path.append([ntail, nhead, edge])
+            self.path_obj.append([ntail, nhead, edge])
 
     def clear_found_ports(self):
         # self.logger.debug('clearing self.seen and self.path ...')
         self.seen = []
-        self.path = []
+        self.path_obj = []
 
     def get_nodes_with_pin(self, symbol, pin):
 
@@ -199,4 +199,4 @@ class PathFinder(SourceReader, SpecialSymbols):
             self.logger.error('zero nodes found on %s with pin = %s', symbol, pin)
             raise ValueError
 
-        return nodes
+        return

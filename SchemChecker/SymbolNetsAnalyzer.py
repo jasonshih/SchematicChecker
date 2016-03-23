@@ -3,6 +3,17 @@ import logging
 from SchemChecker.SchemComponent import SpecialSymbols, SpecialNets
 
 
+class DebugLog:
+
+    def __init__(self, func):
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        print('start dec')
+        self.func(self, *args, **kwargs)
+        print('end dec')
+
+
 class PathTester(SpecialSymbols, SpecialNets):
 
     def __init__(self):
@@ -28,21 +39,27 @@ class PathTester(SpecialSymbols, SpecialNets):
                    ['R43C|2|NEG', 'J26|R12|IO68', 'J16_HSD_212']]
         }
 
-    def compile(self, path):
-
-        self.path_reference = self.__mask_symbol_and_nets_identifier(path)
+    def compile(self, obj_path):
+        """Setting a path as the reference for is_multi_site_ok.
+        :param obj_path: list of list of nodes and edge.
+        """
+        self.path_reference = self.__mask_symbol_and_nets_identifier(obj_path)
 
         print('original reference path:')
-        for x in path:
-            print(', '.join([x[0].name, x[1].name, x[2].name]))
+        [print(x) for x in obj_path]
+        # for x in path:
+        #     print(', '.join([x[0].name, x[1].name, x[2].name]))
 
         print('')
         print('masked reference path:')
-        for x in self.path_reference:
-            print(x)
+        [print(x) for x in self.path_reference]
+        # for x in self.path_reference:
+        #     print(x)
 
     def is_multi_site_ok(self, path):
-
+        """Comparing one path with a reference path.
+        :param path: list of list of nodes and edge.
+        """
         self.path_under_test = self.__mask_symbol_and_nets_identifier(path)
 
         reference = set(map(tuple, self.path_reference))
@@ -68,27 +85,27 @@ class PathTester(SpecialSymbols, SpecialNets):
 
             return False
 
-    def get_uvi_force_sense_merging_point(self, SYMBOL_DICT, NETS_DICT):
+    def get_uvi_force_sense_merging_point(self, symbol_dict, nets_dict):
         # self.logger.setLevel(logging.DEBUG)
         pat_uvi_f = re.compile('(J\d{1,2}_UVI80_\d{1,2})S(\w*)', re.I)
 
         no_list = self.connector_symbols.copy()
         no_list.extend(self.device_symbols)
 
-        uvi_forces = [x for x in NETS_DICT.keys() if pat_uvi_f.match(x)]
+        uvi_forces = [x for x in nets_dict.keys() if pat_uvi_f.match(x)]
 
         ok_list = []
         for uvi_force in uvi_forces:
-            symbols = [x[0] for x in NETS_DICT[uvi_force] if x[0] not in no_list]
+            symbols = [x[0] for x in nets_dict[uvi_force] if x[0] not in no_list]
             prefix = pat_uvi_f.match(uvi_force).group(1)
             posfix = pat_uvi_f.match(uvi_force).group(2)
             uvi_sense = prefix + 'F' + posfix
 
             merging_symbol = (uvi_force, uvi_sense, '[PART_NOT_FOUND]', 'DNI: N.A.')
             for symbol in symbols:
-                nets_at_symbol = list(SYMBOL_DICT[symbol].pins.values())
+                nets_at_symbol = list(symbol_dict[symbol].pins.values())
                 if uvi_force in nets_at_symbol and uvi_sense in nets_at_symbol:
-                    merging_symbol = (uvi_force, uvi_sense, symbol, 'DNI: ' + str(SYMBOL_DICT[symbol].dni))
+                    merging_symbol = (uvi_force, uvi_sense, symbol, 'DNI: ' + str(symbol_dict[symbol].dni))
                     self.logger.debug(merging_symbol)
             ok_list.append(merging_symbol)
 
@@ -106,29 +123,28 @@ class PathTester(SpecialSymbols, SpecialNets):
 
     def get_path_to_plane(self, path, nets_to_plane):
 
-        path_to_gnd = []
         nets = [x[2].name for x in path]
         occurrence = nets.count(nets_to_plane)
 
         all_path_to_plane = []
         if occurrence == 0:
-            print('OK: no connections to ground')
-
+            self.logger.info('No path to %s', nets_to_plane)
         else:
             matches_indexes = (i for i, x in enumerate(nets) if x == nets_to_plane)
             for index in matches_indexes:
+                path_to_gnd = []
                 z = self.plane[nets_to_plane]
                 for i in range(index, 0, -1):
                     if path[i][1].name == z:
                         path_to_gnd.insert(0, path[i])
                         z = path[i][0].name
-                all_path_to_plane.append(path_to_gnd)
 
-        symbols = [str(z) for x in all_path_to_plane for y in x for z in y[:2]]
-        seen = set()
-        cleaned_symbols = [x for x in symbols if not (x in seen or seen.add(x))]
+                symbols = [str(u) for t in path_to_gnd for u in t[:2]]
+                seen = set()
+                cleaned_symbols = [t for t in symbols if not (t in seen or seen.add(t))]
+                all_path_to_plane.append(cleaned_symbols)
 
-        return cleaned_symbols
+        return all_path_to_plane
 
     def get_tester_nets(self, path):
         return {x[2] for x in path if x[2].tester_pointer in self.tester_symbols}
@@ -152,7 +168,6 @@ class PathTester(SpecialSymbols, SpecialNets):
         for x in path:
             inner_list = []
             for y in x[0:2]:
-                # TODO differentiate connector symbols
                 if y.symbol in self.connector_symbols:
                     z = pat_symbol_conn.sub('J##|##|IO##', y.name)
                 else:
@@ -198,10 +213,3 @@ class PathTester(SpecialSymbols, SpecialNets):
             return re.sub('([a-zA-Z]+)[0-9]+\|', '\\1##|', match_obj.group(0))
         else:
             return re.sub('([a-zA-Z]+[0-9]+)[a-zA-Z]+\|', '\\1#|', match_obj.group(0))
-
-    #
-    # def debug_log(f):
-    #     def decorator():
-    #         logging.basicConfig(level=logging.DEBUG)
-    #         f()
-    #         logging.basicConfig(level=logging.INFO)
