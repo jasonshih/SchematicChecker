@@ -21,21 +21,11 @@ class Reporter(object):
                 else:
                     oo.find_path(nut)
 
-                # print('TESTING :' + site + ' -- ' + pins)
-                site_dict.update({site: az.is_multi_site_ok(oo.path_obj)})
-            pins_dict.update({pins: site_dict})
+                is_symmetrical = az.is_multi_site_ok(oo.path_obj)
+                site_dict.update({site: is_symmetrical})
+            pins_dict.update({pins: site_dict.copy()})
 
         return pins_dict
-                # path_to_gnd = az.get_path_to_nets(oo.path_obj, 'AGND')
-                # devices = az.get_device_symbols(oo.path_obj)
-                # tester = az.get_tester_nets(oo.path_obj)
-
-                # for x in path_to_gnd:
-                #     print(str(x))
-
-                # [print(str(x)) for x in devices]
-                # [print(str(x)) for x in tester]
-                # print('')
 
     @staticmethod
     def create_channel_map(path_dict):
@@ -47,4 +37,7 @@ class Reporter(object):
             for resource in resources:
                 if resource.tester_channel:
                     print(pin + ' --> ' + resource.tester_channel)
+
+    @staticmethod
+    def create_dni_report(path_dict):
         pass

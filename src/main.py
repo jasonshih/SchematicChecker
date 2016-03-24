@@ -1,8 +1,7 @@
 from src.Explorer import Explorer
-from src.DrawingBoard import BlockVisualizer
-from src.SymbolNetsAnalyzer import PathAnalyzer
+# from src.DrawingBoard import BlockVisualizer
+# from src.SymbolNetsAnalyzer import PathAnalyzer
 from src.Reporter import Reporter
-
 import logging
 
 if __name__ == "__main__":
@@ -17,8 +16,8 @@ if __name__ == "__main__":
     oo.read_xlsx(xlsx_file)
 
     aa = report.multi_site_check(oo, 4)
+    [print(str(x) + '-->' + str(v)) for x, v in aa.items()]
     pass
-
 
     # node_under_test = SchematicNode(('J6', 'T8', 'IO85'))
     # node_under_test = SchematicNode(('J6', 'A15', 'IO8'))
