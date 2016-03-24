@@ -1,4 +1,4 @@
-from src.SymbolNetsAnalyzer import PathTester
+from src.SymbolNetsAnalyzer import PathAnalyzer
 
 
 class Reporter(object):
@@ -7,49 +7,42 @@ class Reporter(object):
         pass
 
     @staticmethod
-    def check_all_sites(self, oo, ff, xx):
+    def multi_site_check(oo, num_of_sites):
+        az = PathAnalyzer()
 
-        for i in ['X' + str(i) for i in range(4)]:
-            # [node_under_test] = oo.get_nodes_with_pin(symbol=i, pin='VIN_GR4')
-            # [node_under_test] = oo.get_nodes_with_pin(symbol=i, pin='VIN_S1_1') # sense only, no force?
-            # [node_under_test] = oo.get_nodes_with_pin(symbol=i, pin='GPIO6')
-            # [node_under_test] = oo.get_nodes_with_pin(symbol=i, pin='GPIO7')
-            # [node_under_test] = oo.get_nodes_with_pin(symbol=i, pin='VREG_L16')
-            # [node_under_test] = oo.get_nodes_with_pin(symbol=i, pin='VREG_L05')
-            # [node_under_test] = oo.get_nodes_with_pin(symbol=i, pin='MPP1')
-            # [node_under_test] = oo.get_nodes_with_pin(symbol=i, pin='MPP3')
-            [node_under_test] = oo.get_nodes_with_pin(symbol=i, pin='CC1')
+        pins_dict = {}
+        site_dict = {}
+        for pins in ['CC1', 'CC2', 'MPP1', 'MPP2', 'GPIO6', 'GPIO7', 'VIN_GR4', 'VREG_L5', 'VREG_L16']:
+            for site in ['X' + str(i) for i in range(num_of_sites)]:
+                [nut] = oo.get_nodes_with_pin(symbol=site, pin=pins)
 
-            oo.find_path(node_under_test)
+                if site == 'X0':
+                    az.compile(oo.find_path(nut))
+                else:
+                    oo.find_path(nut)
 
-            if i == 'X0':
-                print('')
-                print('REFERENCE:')
-                ff.compile(oo.path_obj)
-                print('')
-                print('TESTING :' + i + '...')
-                xx.path = oo.path_obj
-            else:
-                print('TESTING :' + i + '...')
-                ff.is_multi_site_ok(oo.path_obj)
+                # print('TESTING :' + site + ' -- ' + pins)
+                site_dict.update({site: az.is_multi_site_ok(oo.path_obj)})
+            pins_dict.update({pins: site_dict})
 
-            path_to_gnd = ff.get_path_to_nets(oo.path_obj, 'AGND')
-            devices = ff.get_device_symbols(oo.path_obj)
-            tester = ff.get_tester_nets(oo.path_obj)
+        return site_dict
+                # path_to_gnd = az.get_path_to_nets(oo.path_obj, 'AGND')
+                # devices = az.get_device_symbols(oo.path_obj)
+                # tester = az.get_tester_nets(oo.path_obj)
 
-            print('')
-            [print(str(x)) for x in path_to_gnd]
-            print('')
-            [print(str(x)) for x in devices]
-            print('')
-            [print(str(x)) for x in tester]
-            print('')
+                # for x in path_to_gnd:
+                #     print(str(x))
 
-    def create_channel_map(self, path_dict):
+                # [print(str(x)) for x in devices]
+                # [print(str(x)) for x in tester]
+                # print('')
 
-        ff = PathTester()
+    @staticmethod
+    def create_channel_map(path_dict):
+
+        az = PathAnalyzer()
         for pin, path in path_dict.items():
-            resources = ff.get_tester_nets(path)
+            resources = az.get_tester_nets(path)
 
             for resource in resources:
                 if resource.tester_channel:

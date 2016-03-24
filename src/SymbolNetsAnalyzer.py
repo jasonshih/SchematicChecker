@@ -14,7 +14,7 @@ class DebugLog:
         print('end dec')
 
 
-class PathTester(SpecialSymbols, SpecialNets):
+class PathAnalyzer(SpecialSymbols, SpecialNets):
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -24,37 +24,17 @@ class PathTester(SpecialSymbols, SpecialNets):
         self.path_reference = []
         self.path_under_test = []
 
-        self.path_reference = {
-            'X0': [['X0|90|GPIO6', 'R43A|1|POS', 'S0_GPIO6'],
-                   ['R43A|1|POS', 'R43A|2|NEG', 'na'],
-                   ['R43A|2|NEG', 'J6|R12|IO68', 'J16_HSD_156']]
-        }
-
-        self.path_under_test = {
-            'X1': [['X1|90|GPIO6', 'R43B|1|POS', 'S1_GPIO6'],
-                   ['R43B|1|POS', 'R43B|2|NEG', 'na'],
-                   ['R43B|2|NEG', 'J8|R12|IO68', 'J16_HSD_188']],
-            'X2': [['X2|90|GPIO6', 'R43C|1|POS', 'S2_GPIO6'],
-                   ['R43C|1|POS', 'R43C|2|NEG', 'na'],
-                   ['R43C|2|NEG', 'J26|R12|IO68', 'J16_HSD_212']]
-        }
-
     def compile(self, obj_path):
         """Setting a path as the reference for is_multi_site_ok.
         :param obj_path: list of list of nodes and edge.
         """
         self.path_reference = self.__mask_symbol_and_nets_identifier(obj_path)
 
-        print('original reference path:')
-        [print(x) for x in obj_path]
-        # for x in path:
-        #     print(', '.join([x[0].name, x[1].name, x[2].name]))
+        self.logger.debug('original reference path:')
+        [self.logger.debug('%s', x) for x in obj_path]
 
-        print('')
-        print('masked reference path:')
-        [print(x) for x in self.path_reference]
-        # for x in self.path_reference:
-        #     print(x)
+        self.logger.debug('masked reference path:')
+        [self.logger.debug('%s', x) for x in self.path_reference]
 
     def is_multi_site_ok(self, path):
         """Comparing one path with a reference path.
@@ -66,23 +46,17 @@ class PathTester(SpecialSymbols, SpecialNets):
         response = set(map(tuple, self.path_under_test))
 
         if reference == response:
-            print('OK: multi site compare')
+            self.logger.debug('multi site check: %s PASSED', path[0][0])
             return True
         else:
-            if self.path_reference.__len__() != self.path_under_test.__len__():
-                print('WARNING: different number of path')
-                for i in range(self.path_under_test.__len__()):
-                    if self.path_under_test[i] in self.path_reference:
-                        pass
-                    else:
-                        print('no match found: ' + str(self.path_under_test[i]))
-
+            if len(reference) != len(response):
+                self.logger.warn('multi site check: %s FAILED, different number of path', path[0][0])
             else:
-                print('WARNING: same number of path but not equal')
-                for i in range(self.path_under_test.__len__()):
-                    if self.path_under_test[i] not in self.path_reference:
-                        print(str(i) + ' no match found: ' + str(self.path_under_test[i]))
+                self.logger.warn('multi site check: %s FAILED, not identical', path[0][0])
 
+            for i in range(len(response)):
+                if self.path_under_test[i] not in self.path_reference:
+                    self.logger.warn('no match found: %s', str(path[i]))
             return False
 
     def get_uvi_force_sense_merging_point(self, symbol_dict, nets_dict):
@@ -117,9 +91,6 @@ class PathTester(SpecialSymbols, SpecialNets):
                 self.logger.warn('FORCE_SENSE not connected at %s -- %s, %s %s', x[0], x[1], x[2], x[3])
 
         return ok_list
-
-    def is_connected_to_other_sites(self, path):
-        pass
 
     def get_path_to_nets(self, path, the_nets):
         # self.logger.setLevel(logging.DEBUG)
@@ -191,9 +162,6 @@ class PathTester(SpecialSymbols, SpecialNets):
         final_list = []
         for t in outer_list:
             u = t[2].name
-            # tail = t[0].split('|')[0]
-            # head = t[1].split('|')[0]
-            # tailhead = '_'.join([tail, head])
 
             if pat_plane.search(u):
                 v = u
@@ -212,7 +180,6 @@ class PathTester(SpecialSymbols, SpecialNets):
             else:
                 v = u
                 self.logger.warn('unknown nets type: %s', v)
-            # print('nets: '+ u + ' --> ' + v)
 
             final_list.append([t[0], t[1], v])
         # self.logger.setLevel(logging.INFO)
