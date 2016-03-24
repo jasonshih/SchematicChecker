@@ -1,6 +1,7 @@
 import pygraphviz as p
-from SchemChecker.SchemComponent import *
+from src.SchemComponent import *
 import logging
+
 
 class BlockVisualizer(SpecialSymbols, SpecialNets):
 

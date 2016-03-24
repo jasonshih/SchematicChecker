@@ -1,6 +1,6 @@
 import re
 import logging
-from SchemChecker.SchemComponent import SpecialSymbols, SpecialNets
+from src.SchemComponent import SpecialSymbols, SpecialNets
 
 
 class DebugLog:

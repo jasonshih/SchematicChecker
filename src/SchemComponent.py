@@ -115,9 +115,23 @@ class SchematicNode:
 class SchematicEdge:
 
     def __init__(self, nets):
+        uvi_pat = re.compile('J(\d+)_UVI80_(\d+)S\w*')
+        hsd_pat = re.compile('J(\d+)_HSD_(\d+)')
+
         self.name = nets
         self.site = 0
-        self.tester_pointer = self.name.split('_')[0]
+        self.tester_pointer = nets.split('_')[0]
+
+        mo_uvi = uvi_pat.match(nets)
+        mo_hsd = hsd_pat.match(nets)
+        if mo_uvi:
+            self.tester_channel = str(mo_uvi.group(1)) + '.sense' + str(mo_uvi.group(2))
+        elif mo_hsd:
+            self.tester_channel = str(mo_hsd.group(1)) + '.ch' + str(mo_hsd.group(2))
+        else:
+            self.tester_channel = ''
+
+
 
     def __str__(self):
         return self.name

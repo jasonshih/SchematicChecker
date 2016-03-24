@@ -1,5 +1,5 @@
 from openpyxl import load_workbook
-from SchemChecker.SchemComponent import *
+from src.SchemComponent import *
 import logging
 
 
@@ -199,4 +199,4 @@ class PathFinder(SourceReader, SpecialSymbols):
             self.logger.error('zero nodes found on %s with pin = %s', symbol, pin)
             raise ValueError
 
-        return
+        return nodes
