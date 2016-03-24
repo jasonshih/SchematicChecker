@@ -75,7 +75,7 @@ class SourceReader(object):
         self.logger.info('importing schematic symbol and nets database done!')
 
 
-class PathFinder(SourceReader, SpecialSymbols):
+class Explorer(SourceReader, SpecialSymbols):
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)

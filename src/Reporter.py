@@ -25,7 +25,7 @@ class Reporter(object):
                 site_dict.update({site: az.is_multi_site_ok(oo.path_obj)})
             pins_dict.update({pins: site_dict})
 
-        return site_dict
+        return pins_dict
                 # path_to_gnd = az.get_path_to_nets(oo.path_obj, 'AGND')
                 # devices = az.get_device_symbols(oo.path_obj)
                 # tester = az.get_tester_nets(oo.path_obj)

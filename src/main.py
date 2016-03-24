@@ -1,4 +1,4 @@
-from src.PathFinder import PathFinder
+from src.Explorer import Explorer
 from src.DrawingBoard import BlockVisualizer
 from src.SymbolNetsAnalyzer import PathAnalyzer
 from src.Reporter import Reporter
@@ -9,15 +9,14 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-    oo = PathFinder()
+    oo = Explorer()
     # xx = BlockVisualizer()
-    # ff = PathAnalyzer()
     report = Reporter()
 
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     oo.read_xlsx(xlsx_file)
 
-    report.multi_site_check(oo, 4)
+    aa = report.multi_site_check(oo, 4)
     pass
 
 

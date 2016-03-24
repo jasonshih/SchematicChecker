@@ -1,6 +1,7 @@
 import logging
 import re
 
+from collections import defaultdict
 
 class SpecialSymbols:
 
@@ -53,6 +54,7 @@ class SchematicComponent:
 
         self.logger.info('importing component link database...')
         ss = self.standard_links
+        # s_th = defaultdict(dict)
         pat_pins = re.compile('\((\w+),\s*(\w+)\)')
         pat_type = re.compile('<(\w+)>')
         # part_type, state, tail, heads = '', '', '', []
@@ -73,9 +75,11 @@ class SchematicComponent:
 
                     th = {tail: heads}
                     s_th = {state: th}
+                    # s_th[state] = {tail: heads}
 
                     if part_type and state and tail:
                         self.logger.debug('reading... %s, %s', part_type, s_th)
+                        # TODO consider ChainMap
                         if part_type not in ss.keys():
                             ss.update({part_type: s_th})
                         else:

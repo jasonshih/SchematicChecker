@@ -105,12 +105,8 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             for index in matches_indexes:
                 self.logger.debug('-- searching connection to %s, starting [%s] --', the_nets, index)
                 path_to_plane = []
-
-                # if nets_to_plane in self.plane.keys():
-                #     z = self.plane[nets_to_plane]
-                # else:
                 z = path[index][1].name
-
+                # TODO try reveresed
                 for i in range(index, -1, -1):
                     if path[i][1].name == z:
                         self.logger.debug('recording: [%s] %s', i, path[i])
