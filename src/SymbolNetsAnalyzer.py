@@ -121,29 +121,40 @@ class PathTester(SpecialSymbols, SpecialNets):
     def is_connected_to_other_sites(self, path):
         pass
 
-    def get_path_to_plane(self, path, nets_to_plane):
-
-        nets = [x[2].name for x in path]
-        occurrence = nets.count(nets_to_plane)
+    def get_path_to_nets(self, path, the_nets):
+        # self.logger.setLevel(logging.DEBUG)
+        all_nets_in_path = [x[2].name for x in path]
+        occurrence = all_nets_in_path.count(the_nets)
 
         all_path_to_plane = []
         if occurrence == 0:
-            self.logger.info('No path to %s', nets_to_plane)
+            self.logger.warn('No path from %s to %s', path[0][0].name, the_nets)
         else:
-            matches_indexes = (i for i, x in enumerate(nets) if x == nets_to_plane)
+            matches_indexes = (i for i, x in enumerate(all_nets_in_path) if x == the_nets)
             for index in matches_indexes:
-                path_to_gnd = []
-                z = self.plane[nets_to_plane]
-                for i in range(index, 0, -1):
+                self.logger.debug('-- searching connection to %s, starting [%s] --', the_nets, index)
+                path_to_plane = []
+
+                # if nets_to_plane in self.plane.keys():
+                #     z = self.plane[nets_to_plane]
+                # else:
+                z = path[index][1].name
+
+                for i in range(index, -1, -1):
                     if path[i][1].name == z:
-                        path_to_gnd.insert(0, path[i])
+                        self.logger.debug('recording: [%s] %s', i, path[i])
+                        path_to_plane.insert(0, path[i])
                         z = path[i][0].name
+                    else:
+                        self.logger.debug('ignoring: [%s] %s', i, path[i])
 
-                symbols = [str(u) for t in path_to_gnd for u in t[:2]]
-                seen = set()
-                cleaned_symbols = [t for t in symbols if not (t in seen or seen.add(t))]
-                all_path_to_plane.append(cleaned_symbols)
+                self.logger.debug('saving with path length: %s', len(path_to_plane))
+                all_path_to_plane.append(path_to_plane)
 
+        # [u for t in path_to_plane for u in t[0:1]] tails
+        # [u for t in path_to_plane for u in t[1:2]] heads
+        # [u for t in path_to_plane for u in t[2:3]] edges
+        # self.logger.setLevel(logging.INFO)
         return all_path_to_plane
 
     def get_tester_nets(self, path):

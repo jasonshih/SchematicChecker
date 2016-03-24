@@ -1,5 +1,3 @@
-from src.PathFinder import PathFinder
-from src.DrawingBoard import BlockVisualizer
 from src.SymbolNetsAnalyzer import PathTester
 
 
@@ -8,6 +6,7 @@ class Reporter(object):
     def __init__(self):
         pass
 
+    @staticmethod
     def check_all_sites(self, oo, ff, xx):
 
         for i in ['X' + str(i) for i in range(4)]:
@@ -34,7 +33,7 @@ class Reporter(object):
                 print('TESTING :' + i + '...')
                 ff.is_multi_site_ok(oo.path_obj)
 
-            path_to_gnd = ff.get_path_to_plane(oo.path_obj, 'AGND')
+            path_to_gnd = ff.get_path_to_nets(oo.path_obj, 'AGND')
             devices = ff.get_device_symbols(oo.path_obj)
             tester = ff.get_tester_nets(oo.path_obj)
 
