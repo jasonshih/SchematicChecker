@@ -1,18 +1,22 @@
-from src.SymbolNetsAnalyzer import PathAnalyzer
+from src.Analyzer import PathAnalyzer
+from src.SchemComponent import *
+import logging
 
 
 class Reporter:
 
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         pass
 
     @staticmethod
-    def multi_site_check(oo, num_of_sites):
+    def multi_site_check(oo):
         az = PathAnalyzer()
         pins_dict = {}
         site_dict = {}
         for pin in az.iter_all_pins_in_symbol('X0', oo):
-            for site in ['X' + str(i) for i in range(num_of_sites)]:
+            # for site in ('X' + str(i) for i in range(4)):
+            for site in az.iter_all_device_symbols(oo):
                 [nut] = oo.get_nodes_with_pin(symbol=site, pin=pin)
 
                 if site == 'X0':
@@ -33,18 +37,35 @@ class Reporter:
         az = PathAnalyzer()
         big_list = az.get_uvi_force_sense_merging_point(oo.SYMBOL_DICT, oo.NETS_DICT)
 
-    @staticmethod
-    def create_channel_map(oo):
+    def create_channel_map(self, oo):
         az = PathAnalyzer()
 
-        for pin in ['MPP1', 'MPP2', 'MPP3', 'MPP4']:
-            [nut] = oo.get_nodes_with_pin('X0', pin)
-            this_path = oo.find_path(nut)
-            resources = az.get_tester_nets(this_path)
+        for pin in az.iter_all_pins_in_symbol('X0', oo):
+            for site in az.iter_all_device_symbols(oo):
 
-            for resource in resources:
-                if resource.tester_channel:
-                    print(pin + ' --> ' + resource.tester_channel)
+                if pin.startswith('CDC'):
+                    continue
+
+                [nut] = oo.get_nodes_with_pin(site, pin)
+                this_path = oo.find_path(nut)
+
+                if 'MPP' in pin:
+                    zz = SchematicPath(this_path)
+                    zz.populate_subset(az)
+                    pass
+                # TODO consider returning an iterator
+                resources = az.get_tester_nets(this_path)
+                resources = list(filter(lambda x: x.pin_type != 'N/C', resources))
+
+                if not resources:
+                    self.logger.warn('no tester channel assigned for pin: %s', pin)
+
+                for resource in resources:
+                    if resource.pin_channel:
+                        print('\t\t'.join([pin, site, resource.pin_type, resource.pin_channel]))
+                    else:
+                        self.logger.warn('resource.tester_channel is empty at nets: %s', resource)
+        # {vbt_pin: [pin_name, pin_type, site0, *]}
 
     @staticmethod
     def create_dni_report(oo):

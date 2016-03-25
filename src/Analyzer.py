@@ -1,6 +1,6 @@
 import re
 import logging
-from src.SchemComponent import SpecialSymbols, SpecialNets
+from src.SchemComponent import SpecialNets, SpecialSymbols
 
 
 class DebugLog:
@@ -56,7 +56,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
 
             for i in range(len(response)):
                 if self.path_under_test[i] not in self.path_reference:
-                    self.logger.warn('no match found: %s', str(path[i]))
+                    self.logger.debug('no match found: %s', str(path[i]))
             return False
 
     def get_uvi_force_sense_merging_point(self, symbol_dict, nets_dict):
@@ -125,17 +125,24 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         return all_path_to_plane
 
     def get_tester_nets(self, path):
-        return {x[2] for x in path if x[2].tester_pointer in self.tester_symbols}
+        # TODO consider renaming it to iter_tester_nets_at_path
+        return {x[2] for x in path if x[2].tester_board in self.tester_symbols}
 
     def get_device_symbols(self, path):
+        # TODO consider renaming it to iter_device_symbols_at_path
         return {y for x in path for y in x[:2] if y.symbol in self.device_symbols}
 
     @staticmethod
     def iter_all_pins_in_symbol(symbol, oo):
         return sorted((y for x, y in oo.SYMBOL_DICT[symbol].pins.keys()))
 
+    @staticmethod
+    def iter_all_device_symbols(oo):
+        return sorted((x for x in oo.SYMBOL_DICT.keys() if x in oo.device_symbols))
+
     def __mask_symbol_and_nets_identifier(self, path):
         # self.logger.setLevel(logging.DEBUG)
+        # TODO consider globalizing these.
         pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
         pat_symbol_conn = re.compile('^J\d+([\w|]+)IO\d+', re.I)
         pat_plane = re.compile('-5V|\+5V|\+5V_RLY|AGND|P5V|P15V|N15V|N5V', re.I)

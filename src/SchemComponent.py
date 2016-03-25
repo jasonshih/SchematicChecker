@@ -1,7 +1,7 @@
 import logging
 import re
 
-# from collections import defaultdict
+from collections import defaultdict
 
 
 class SpecialSymbols:
@@ -80,7 +80,7 @@ class SchematicComponent:
 
                     if part_type and state and tail:
                         self.logger.debug('reading... %s, %s', part_type, s_th)
-                        # TODO consider ChainMap
+                        # TODO consider ChainMap or defaultdict(lambda: defaultdic(dict))
                         if part_type not in ss.keys():
                             ss.update({part_type: s_th})
                         else:
@@ -122,24 +122,51 @@ class SchematicEdge:
     def __init__(self, nets):
         uvi_pat = re.compile('J(\d+)_UVI80_(\d+)S\w*')
         hsd_pat = re.compile('J(\d+)_HSD_(\d+)')
+        dc30_pat = re.compile('J(\d+)_DC30_(\d+)')
 
         self.name = nets
         self.site = 0
-        self.tester_pointer = nets.split('_')[0]
+        self.tester_board = nets.split('_')[0]
 
         mo_uvi = uvi_pat.match(nets)
         mo_hsd = hsd_pat.match(nets)
+        mo_dc30 = dc30_pat.match(nets)
         if mo_uvi:
-            self.tester_channel = str(mo_uvi.group(1)) + '.sense' + str(mo_uvi.group(2))
+            self.pin_channel = '.sense'.join([str(mo_uvi.group(1)), str(mo_uvi.group(2))])
+            self.pin_type = 'DCVI'
         elif mo_hsd:
-            self.tester_channel = str(mo_hsd.group(1)) + '.ch' + str(mo_hsd.group(2))
+            self.pin_channel = '.ch'.join([str(mo_hsd.group(1)), str(mo_hsd.group(2))])
+            self.pin_type = 'I/O'
+        elif mo_dc30:
+            self.pin_channel = '.sense'.join([str(mo_dc30.group(1)), str(mo_dc30.group(2))])
+            self.pin_type = 'DCVI'
         else:
-            self.tester_channel = ''
-
-
+            self.pin_channel = 'N/C'
+            self.pin_type = 'N/C'
 
     def __str__(self):
         return self.name
 
     def __repr__(self):
         return '<edge>: ' + self.name
+
+
+class SchematicPath(SpecialSymbols, SpecialNets):
+
+    def __init__(self, path):
+        SpecialSymbols.__init__(self)
+        SpecialNets.__init__(self)
+        self.path = path
+        self.origin = path[0][0]
+        self.subset = defaultdict(list)
+
+        self.iter_devices = (y for x in path for y in x[:2] if y.symbol in self.device_symbols)
+        self.iter_testers = (y for x in path for y in x[2:3] if y.tester_board in self.tester_symbols)
+
+    def populate_subset(self, az):
+        # az = PathAnalyzer()
+        for channel in self.iter_testers:
+            self.subset[channel.name].append(az.get_path_to_nets(self.path, channel.name))
+
+        for plane in self.plane.keys():
+            self.subset[plane].append(az.get_path_to_nets(self.path, plane))
