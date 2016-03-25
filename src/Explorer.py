@@ -165,7 +165,7 @@ class Explorer(SourceReader, SpecialSymbols):
 
                         all_linked_ports.extend(linked_ports)
             else:
-                self.logger.info('DNI: symbol %s', symbol)
+                self.logger.debug('DNI: symbol %s', symbol)
 
         return all_linked_ports
 

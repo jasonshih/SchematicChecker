@@ -50,9 +50,9 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             return True
         else:
             if len(reference) != len(response):
-                self.logger.warn('multi site check: %s FAILED, different number of path', path[0][0])
+                self.logger.warn('multi site check: %s FAILED, number of path mismatch', path[0][0])
             else:
-                self.logger.warn('multi site check: %s FAILED, not identical', path[0][0])
+                self.logger.warn('multi site check: %s FAILED, component mismatch', path[0][0])
 
             for i in range(len(response)):
                 if self.path_under_test[i] not in self.path_reference:
@@ -129,6 +129,10 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
 
     def get_device_symbols(self, path):
         return {y for x in path for y in x[:2] if y.symbol in self.device_symbols}
+
+    @staticmethod
+    def iter_all_pins_in_symbol(symbol, oo):
+        return sorted((y for x, y in oo.SYMBOL_DICT[symbol].pins.keys()))
 
     def __mask_symbol_and_nets_identifier(self, path):
         # self.logger.setLevel(logging.DEBUG)
