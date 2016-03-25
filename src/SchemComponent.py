@@ -153,20 +153,25 @@ class SchematicEdge:
 
 class SchematicPath(SpecialSymbols, SpecialNets):
 
-    def __init__(self, path):
+    def __init__(self, path, analyzer_obj):
         SpecialSymbols.__init__(self)
         SpecialNets.__init__(self)
         self.path = path
         self.origin = path[0][0]
         self.subset = defaultdict(list)
+        self.az = analyzer_obj
 
         self.iter_devices = (y for x in path for y in x[:2] if y.symbol in self.device_symbols)
         self.iter_testers = (y for x in path for y in x[2:3] if y.tester_board in self.tester_symbols)
 
-    def populate_subset(self, az):
+        self.populate_subset()
+
+    def populate_subset(self):
         # az = PathAnalyzer()
         for channel in self.iter_testers:
-            self.subset[channel.name].append(az.get_path_to_nets(self.path, channel.name))
+            self.subset[channel.name].append(self.az.get_path_to_nets(self, channel.name))
 
-        for plane in self.plane.keys():
-            self.subset[plane].append(az.get_path_to_nets(self.path, plane))
+        for plane in self.plane:
+            to_plane = self.az.get_path_to_nets(self, plane)
+            if to_plane:
+                self.subset[plane].append(to_plane)

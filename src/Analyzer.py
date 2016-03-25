@@ -24,39 +24,40 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         self.path_reference = []
         self.path_under_test = []
 
-    def compile(self, obj_path):
+    def compile(self, pathway):
         """Setting a path as the reference for is_multi_site_ok.
-        :param obj_path: list of list of nodes and edge.
+        :param pathway: list of list of nodes and edge.
         """
-        self.path_reference = self.__mask_symbol_and_nets_identifier(obj_path)
+        self.path_reference = self.__mask_symbol_and_nets_identifier(pathway)
 
         self.logger.debug('original reference path:')
-        [self.logger.debug('%s', x) for x in obj_path]
+        [self.logger.debug('%s', x) for x in pathway.path]
 
         self.logger.debug('masked reference path:')
         [self.logger.debug('%s', x) for x in self.path_reference]
 
-    def is_multi_site_ok(self, path):
+    def is_multi_site_ok(self, pathway):
         """Comparing one path with a reference path.
-        :param path: list of list of nodes and edge.
+        :param pathway: list of list of nodes and edge.
         """
-        self.path_under_test = self.__mask_symbol_and_nets_identifier(path)
+        self.path_under_test = self.__mask_symbol_and_nets_identifier(pathway)
 
+        # TODO probably broken now
         reference = set(map(tuple, self.path_reference))
         response = set(map(tuple, self.path_under_test))
 
         if reference == response:
-            self.logger.debug('multi site check: %s PASSED', path[0][0])
+            self.logger.debug('multi site check: %s PASSED', pathway.origin.name)
             return True
         else:
             if len(reference) != len(response):
-                self.logger.warn('multi site check: %s FAILED, number of path mismatch', path[0][0])
+                self.logger.warn('multi site check: %s FAILED, number of path mismatch', pathway.origin.name)
             else:
-                self.logger.warn('multi site check: %s FAILED, component mismatch', path[0][0])
+                self.logger.warn('multi site check: %s FAILED, component mismatch', pathway.origin.name)
 
             for i in range(len(response)):
                 if self.path_under_test[i] not in self.path_reference:
-                    self.logger.debug('no match found: %s', str(path[i]))
+                    self.logger.debug('no match found: %s', str(self.path_under_test[i]))
             return False
 
     def get_uvi_force_sense_merging_point(self, symbol_dict, nets_dict):
@@ -92,28 +93,29 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
 
         return ok_list
 
-    def get_path_to_nets(self, path, the_nets):
+    def get_path_to_nets(self, pathway, the_nets):
         # self.logger.setLevel(logging.DEBUG)
-        all_nets_in_path = [x[2].name for x in path]
+        TAIL, HEAD, EDGE = 0, 1, 2
+        all_nets_in_path = [x[EDGE].name for x in pathway.path]
         occurrence = all_nets_in_path.count(the_nets)
 
         all_path_to_plane = []
         if occurrence == 0:
-            self.logger.warn('No path from %s to %s', path[0][0].name, the_nets)
+            self.logger.debug('No path from %s to %s', pathway.origin.name, the_nets)
         else:
             matches_indexes = (i for i, x in enumerate(all_nets_in_path) if x == the_nets)
             for index in matches_indexes:
                 self.logger.debug('-- searching connection to %s, starting [%s] --', the_nets, index)
                 path_to_plane = []
-                z = path[index][1].name
+                z = pathway.path[index][HEAD].name
                 # TODO try reveresed
                 for i in range(index, -1, -1):
-                    if path[i][1].name == z:
-                        self.logger.debug('recording: [%s] %s', i, path[i])
-                        path_to_plane.insert(0, path[i])
-                        z = path[i][0].name
+                    if pathway.path[i][HEAD].name == z:
+                        self.logger.debug('recording: [%s] %s', i, pathway.path[i])
+                        path_to_plane.insert(0, pathway.path[i])
+                        z = pathway.path[i][TAIL].name
                     else:
-                        self.logger.debug('ignoring: [%s] %s', i, path[i])
+                        self.logger.debug('ignoring: [%s] %s', i, pathway.path[i])
 
                 self.logger.debug('saving with path length: %s', len(path_to_plane))
                 all_path_to_plane.append(path_to_plane)
@@ -124,13 +126,14 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         # self.logger.setLevel(logging.INFO)
         return all_path_to_plane
 
-    def get_tester_nets(self, path):
+    def get_tester_nets(self, pathway):
         # TODO consider renaming it to iter_tester_nets_at_path
-        return {x[2] for x in path if x[2].tester_board in self.tester_symbols}
+        EDGE = 2
+        return {x[EDGE] for x in pathway.path if x[EDGE].tester_board in self.tester_symbols}
 
-    def get_device_symbols(self, path):
+    def get_device_symbols(self, pathway):
         # TODO consider renaming it to iter_device_symbols_at_path
-        return {y for x in path for y in x[:2] if y.symbol in self.device_symbols}
+        return {y for x in pathway.path for y in x[:2] if y.symbol in self.device_symbols}
 
     @staticmethod
     def iter_all_pins_in_symbol(symbol, oo):
@@ -140,7 +143,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
     def iter_all_device_symbols(oo):
         return sorted((x for x in oo.SYMBOL_DICT.keys() if x in oo.device_symbols))
 
-    def __mask_symbol_and_nets_identifier(self, path):
+    def __mask_symbol_and_nets_identifier(self, pathway):
         # self.logger.setLevel(logging.DEBUG)
         # TODO consider globalizing these.
         pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
@@ -154,7 +157,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         pat_common = re.compile('(\w*)\d*$')
 
         outer_list = []
-        for x in path:
+        for x in pathway.path:
             inner_list = []
             for y in x[0:2]:
                 if y.symbol in self.connector_symbols:

@@ -1,5 +1,6 @@
 from openpyxl import load_workbook
 from src.SchemComponent import *
+from src.Analyzer import PathAnalyzer
 import logging
 
 
@@ -87,7 +88,7 @@ class Explorer(SourceReader, SpecialSymbols):
         # self.tester_connections = []
         # self.device_connections = []
 
-    def find_path(self, ntail, level=0):
+    def explore(self, ntail, level=0):
         # main function call for this class. finding path in this format:
         #     TAIL   -- EDGE -- HEAD
         self.logger.debug('finding path for %s, at level %s', ntail.symbol, level)
@@ -117,12 +118,12 @@ class Explorer(SourceReader, SpecialSymbols):
         if next_tails:
             level += 1
             for next_tail in next_tails:
-                self.find_path(next_tail, level)
+                self.explore(next_tail, level)
             level -= 1
         else:
             pass
 
-        return self.path_obj
+        return SchematicPath(self.path_obj, PathAnalyzer())
 
     def tail_to_edge(self, tail, level):
         (t, u, v) = tail.tuple
@@ -181,7 +182,7 @@ class Explorer(SourceReader, SpecialSymbols):
 
     def record_path_obj(self, ntail, edge, nheads):
         for nhead in nheads:
-            self.path_obj.append([ntail, nhead, edge])
+            self.path_obj.append((ntail, nhead, edge))
 
     def clear_found_ports(self):
         # self.logger.debug('clearing self.seen and self.path ...')

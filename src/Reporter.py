@@ -20,10 +20,10 @@ class Reporter:
                 [nut] = oo.get_nodes_with_pin(symbol=site, pin=pin)
 
                 if site == 'X0':
-                    # TODO confirm that oo.find_path here is saving the oo.path_obj
-                    az.compile(oo.find_path(nut))
+                    # TODO confirm that oo.explore here is saving the oo.path_obj
+                    az.compile(oo.explore(nut))
                 else:
-                    oo.find_path(nut)
+                    oo.explore(nut)
 
                 is_symmetrical = az.is_multi_site_ok(oo.path_obj)
 
@@ -39,33 +39,39 @@ class Reporter:
 
     def create_channel_map(self, oo):
         az = PathAnalyzer()
-
-        for pin in az.iter_all_pins_in_symbol('X0', oo):
-            for site in az.iter_all_device_symbols(oo):
+        # for site in az.iter_all_device_symbols(oo):
+        for site in ['X0', 'X1']:
+            for pin in az.iter_all_pins_in_symbol('X0', oo):
 
                 if pin.startswith('CDC'):
+                    # TODO find out why CDC_LO_M and _P are messed up.
                     continue
 
                 [nut] = oo.get_nodes_with_pin(site, pin)
-                this_path = oo.find_path(nut)
+                this_path = oo.explore(nut)
+
+                # TODO consider returning an iterator for get_tester_nets
+                # resources = az.get_tester_nets(this_path)
+                # resources = list(filter(lambda x: x.pin_type != 'N/C', resources))
+
+                resources = this_path.subset.keys()
 
                 if 'MPP' in pin:
-                    zz = SchematicPath(this_path)
-                    zz.populate_subset(az)
                     pass
-                # TODO consider returning an iterator
-                resources = az.get_tester_nets(this_path)
-                resources = list(filter(lambda x: x.pin_type != 'N/C', resources))
 
                 if not resources:
                     self.logger.warn('no tester channel assigned for pin: %s', pin)
-
-                for resource in resources:
-                    if resource.pin_channel:
-                        print('\t\t'.join([pin, site, resource.pin_type, resource.pin_channel]))
-                    else:
-                        self.logger.warn('resource.tester_channel is empty at nets: %s', resource)
-        # {vbt_pin: [pin_name, pin_type, site0, *]}
+                    print('\t\t'.join([pin, site, 'N/C', edge_obj.pin_channel]))
+                else:
+                    for resource in resources:
+                        edge_obj = this_path.subset[resource][0][0][-1][-1]
+                        if resource == 'AGND':
+                            print('\t\t'.join([pin, site, 'GND', edge_obj.pin_channel]))
+                        elif edge_obj.pin_channel:
+                            print('\t\t'.join([pin, site, edge_obj.pin_type, edge_obj.pin_channel]))
+                        else:
+                            self.logger.warn('resource.tester_channel is empty at nets: %s', resource)
+                            # {vbt_pin: [pin_name, pin_type, site0, *]}
 
     @staticmethod
     def create_dni_report(oo):
