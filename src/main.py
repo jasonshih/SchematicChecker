@@ -15,10 +15,10 @@ if __name__ == "__main__":
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     oo.read_xlsx(xlsx_file)
 
-    # ms_report = report.multi_site_check(oo)
-    # [print(str(x) + ' --> ' + str(v)) for x, v in ms_report.items() if False in v.values()]
+    ms_report = report.multi_site_check(oo)
+    [print(str(x) + ' --> ' + str(v)) for x, v in ms_report.items() if False in v.values()]
 
-    cm_report = report.create_channel_map(oo)
+    # cm_report = report.create_channel_map(oo)
     #
     # fs_report = report.force_and_sense_check(oo)
     #

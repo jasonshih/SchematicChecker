@@ -28,6 +28,10 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         """Setting a path as the reference for is_multi_site_ok.
         :param pathway: list of list of nodes and edge.
         """
+
+        if not pathway:
+            raise ValueError
+
         self.path_reference = self.__mask_symbol_and_nets_identifier(pathway)
 
         self.logger.debug('original reference path:')
@@ -40,11 +44,18 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         """Comparing one path with a reference path.
         :param pathway: list of list of nodes and edge.
         """
+
+        if not pathway:
+            raise ValueError
+
         self.path_under_test = self.__mask_symbol_and_nets_identifier(pathway)
 
         # TODO probably broken now
-        reference = set(map(tuple, self.path_reference))
-        response = set(map(tuple, self.path_under_test))
+        # reference = set(map(tuple, self.path_reference))
+        # response = set(map(tuple, self.path_under_test))
+
+        reference = set(self.path_reference)
+        response = set(self.path_under_test)
 
         if reference == response:
             self.logger.debug('multi site check: %s PASSED', pathway.origin.name)
@@ -53,11 +64,11 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             if len(reference) != len(response):
                 self.logger.warn('multi site check: %s FAILED, number of path mismatch', pathway.origin.name)
             else:
-                self.logger.warn('multi site check: %s FAILED, component mismatch', pathway.origin.name)
+                self.logger.warn('multi site check: %s FAILED, possible component mismatch', pathway.origin.name)
 
-            for i in range(len(response)):
-                if self.path_under_test[i] not in self.path_reference:
-                    self.logger.debug('no match found: %s', str(self.path_under_test[i]))
+            for i, p in enumerate(response):
+                if p not in reference:
+                    self.logger.debug('no match found: [%s] %s', i, p)
             return False
 
     def get_uvi_force_sense_merging_point(self, symbol_dict, nets_dict):
@@ -126,15 +137,6 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         # self.logger.setLevel(logging.INFO)
         return all_path_to_plane
 
-    def get_tester_nets(self, pathway):
-        # TODO consider renaming it to iter_tester_nets_at_path
-        edge = 2
-        return {x[edge] for x in pathway.path if x[edge].tester_board in self.tester_symbols}
-
-    def get_device_symbols(self, pathway):
-        # TODO consider renaming it to iter_device_symbols_at_path
-        return {y for x in pathway.path for y in x[:2] if y.symbol in self.device_symbols}
-
     @staticmethod
     def iter_all_pins_in_symbol(symbol, oo):
         return sorted((y for x, y in oo.SYMBOL_DICT[symbol].pins.keys()))
@@ -148,7 +150,6 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         # TODO consider globalizing these.
         pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
         pat_symbol_conn = re.compile('^J\d+([\w|]+)IO\d+', re.I)
-        pat_plane = re.compile('-5V|\+5V|\+5V_RLY|AGND|P5V|P15V|N15V|N5V', re.I)
         pat_hidden = re.compile('^\$(\w*)')
         pat_site = re.compile('^S\d{1,2}(_\w*)', re.I)
         pat_udb = re.compile('^UDB\d*')
@@ -173,7 +174,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         for t in outer_list:
             u = t[2].name
 
-            if pat_plane.search(u):
+            if u in self.plane:
                 v = u
             elif pat_hidden.search(u):
                 v = pat_hidden.sub(r'hidden', u)
@@ -191,7 +192,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
                 v = u
                 self.logger.warn('unknown nets type: %s', v)
 
-            final_list.append([t[0], t[1], v])
+            final_list.append((t[0], t[1], v))
         # self.logger.setLevel(logging.INFO)
         return final_list
 
@@ -201,3 +202,15 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             return re.sub('([a-zA-Z]+)[0-9]+\|', '\\1##|', match_obj.group(0))
         else:
             return re.sub('([a-zA-Z]+[0-9]+)[a-zA-Z]+\|', '\\1#|', match_obj.group(0))
+
+    def get_tester_nets(self, pathway):
+        self.logger.warn('deprecating get_get_device_symbols, use pathway.subset instead')
+        # TODO consider renaming it to iter_tester_nets_at_path
+        edge = 2
+        return {x[edge] for x in pathway.path if x[edge].tester_board in self.tester_symbols}
+
+    def get_device_symbols(self, pathway):
+        # TODO consider renaming it to iter_device_symbols_at_path
+        self.logger.warn('deprecating get_get_device_symbols, use pathway.subset instead')
+        return {y for x in pathway.path for y in x[:2] if y.symbol in self.device_symbols}
+
