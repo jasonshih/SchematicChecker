@@ -1,5 +1,6 @@
 from src.Analyzer import PathAnalyzer
-from src.SchemComponent import *
+from collections import defaultdict
+from operator import itemgetter
 import logging
 
 
@@ -34,13 +35,18 @@ class Reporter:
 
     @staticmethod
     def force_and_sense_check(oo):
-        az = PathAnalyzer()
-        big_list = az.get_uvi_force_sense_merging_point(oo.SYMBOL_DICT, oo.NETS_DICT)
+        pass
+        # az = PathAnalyzer()
+        # big_list = az.get_uvi_force_sense_merging_point(oo.SYMBOL_DICT, oo.NETS_DICT)
 
     def create_channel_map(self, oo):
         az = PathAnalyzer()
-        # for site in az.iter_all_device_symbols(oo):
-        for site in ['X0', 'X1']:
+
+        cm = defaultdict(list)
+        cm_lists = []
+
+        # for site in ['X0', 'X1']:
+        for site in az.iter_all_device_symbols(oo):
             for pin in az.iter_all_pins_in_symbol('X0', oo):
 
                 if pin.startswith('CDC'):
@@ -50,10 +56,6 @@ class Reporter:
                 [nut] = oo.get_nodes_with_pin(site, pin)
                 this_path = oo.explore(nut)
 
-                # TODO consider returning an iterator for get_tester_nets
-                # resources = az.get_tester_nets(this_path)
-                # resources = list(filter(lambda x: x.pin_type != 'N/C', resources))
-
                 resources = this_path.subset.keys()
 
                 if 'MPP' in pin:
@@ -61,17 +63,26 @@ class Reporter:
 
                 if not resources:
                     self.logger.warn('no tester channel assigned for pin: %s', pin)
-                    print('\t\t'.join([pin, site, 'N/C', edge_obj.pin_channel]))
+                    cm[(pin, 'N/C')].append('_')
                 else:
                     for resource in resources:
+                        # TODO fix the 0 0 -1 -1 below.
                         edge_obj = this_path.subset[resource][0][0][-1][-1]
-                        if resource == 'AGND':
-                            print('\t\t'.join([pin, site, 'GND', edge_obj.pin_channel]))
+                        if resource == 'AGND' and len(resources) == 1:
+                            cm[(pin, 'GND')].append('_')
                         elif edge_obj.pin_channel:
-                            print('\t\t'.join([pin, site, edge_obj.pin_type, edge_obj.pin_channel]))
+                            cm[(pin, edge_obj.pin_type)].append(edge_obj.pin_channel)
                         else:
-                            self.logger.warn('resource.tester_channel is empty at nets: %s', resource)
-                            # {vbt_pin: [pin_name, pin_type, site0, *]}
+                            self.logger.debug('resource.tester_channel is empty at nets: %s', resource)
+
+        for u, v in cm.items():
+            combined = list(u)
+            combined.extend(v.copy())
+            cm_lists.append(combined)
+
+        cm_lists = sorted(cm_lists, key=itemgetter(1))
+        cm_lists = sorted(cm_lists, key=itemgetter(0))
+        [print(x) for x in cm_lists]
 
     @staticmethod
     def create_dni_report(oo):

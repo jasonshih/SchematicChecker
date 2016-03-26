@@ -141,8 +141,8 @@ class SchematicEdge:
             self.pin_channel = '.sense'.join([str(mo_dc30.group(1)), str(mo_dc30.group(2))])
             self.pin_type = 'DCVI'
         else:
-            self.pin_channel = 'N/C'
-            self.pin_type = 'N/C'
+            self.pin_channel = ''
+            self.pin_type = ''
 
     def __str__(self):
         return self.name

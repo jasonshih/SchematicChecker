@@ -95,8 +95,8 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
 
     def get_path_to_nets(self, pathway, the_nets):
         # self.logger.setLevel(logging.DEBUG)
-        TAIL, HEAD, EDGE = 0, 1, 2
-        all_nets_in_path = [x[EDGE].name for x in pathway.path]
+        tail, head, edge = 0, 1, 2
+        all_nets_in_path = [x[edge].name for x in pathway.path]
         occurrence = all_nets_in_path.count(the_nets)
 
         all_path_to_plane = []
@@ -107,13 +107,13 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             for index in matches_indexes:
                 self.logger.debug('-- searching connection to %s, starting [%s] --', the_nets, index)
                 path_to_plane = []
-                z = pathway.path[index][HEAD].name
+                z = pathway.path[index][head].name
                 # TODO try reveresed
                 for i in range(index, -1, -1):
-                    if pathway.path[i][HEAD].name == z:
+                    if pathway.path[i][head].name == z:
                         self.logger.debug('recording: [%s] %s', i, pathway.path[i])
                         path_to_plane.insert(0, pathway.path[i])
-                        z = pathway.path[i][TAIL].name
+                        z = pathway.path[i][tail].name
                     else:
                         self.logger.debug('ignoring: [%s] %s', i, pathway.path[i])
 
@@ -128,8 +128,8 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
 
     def get_tester_nets(self, pathway):
         # TODO consider renaming it to iter_tester_nets_at_path
-        EDGE = 2
-        return {x[EDGE] for x in pathway.path if x[EDGE].tester_board in self.tester_symbols}
+        edge = 2
+        return {x[edge] for x in pathway.path if x[edge].tester_board in self.tester_symbols}
 
     def get_device_symbols(self, pathway):
         # TODO consider renaming it to iter_device_symbols_at_path
