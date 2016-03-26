@@ -73,10 +73,8 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             return False
 
     def get_uvi_force_sense(self, oo):
-        # self.logger.setLevel(logging.DEBUG)
         nets_dict = oo.NETS_DICT
         pat_uvi = re.compile('(J\d{1,2}_UVI80_\d{1,2})(\w*)', re.I)
-
         tester_resources = [n for n in nets_dict if n.split('_')[0] in self.tester_symbols]
         uvi_resources = sorted([n for n in tester_resources if pat_uvi.match(n)])
 
@@ -84,59 +82,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         for uvi_resource in uvi_resources:
             mo = pat_uvi.match(uvi_resource)
             checks[mo.group(1)].append(mo.group(2))
-
         return checks
-
-        # for uvi_group, postfix in sorted(checks.items()):
-        #
-        #     invalid_post_fix = False
-        #     if ~ (('F' in postfix) ^ ('S' in postfix)):
-        #         invalid_post_fix = True
-        #
-        #     elif ~ (('F_A' in postfix) ^ ('S_A' in postfix)):
-        #         invalid_post_fix = True
-        #
-        #     elif ~ (('F_B' in postfix) ^ ('S_B' in postfix)):
-        #         invalid_post_fix = True
-        #
-        #     if invalid_post_fix:
-        #         print(':'.join([str(uvi_group), str(postfix)]))
-        #
-        #
-        #
-
-
-        # pat_uvi_f = re.compile('(J\d{1,2}_UVI80_\d{1,2})S(\w*)', re.I)
-        # pat_uvi = re.compile('(J\d{1,2}_UVI80_\d{1,2})(\w*)', re.I)
-        #
-        # no_list = self.connector_symbols.copy()
-        # no_list.extend(self.device_symbols)
-        #
-        # uvi_forces = [x for x in nets_dict.keys() if pat_uvi_f.match(x)]
-        #
-        # ok_list = []
-        # for uvi_force in uvi_forces:
-        #     symbols = [x[0] for x in nets_dict[uvi_force] if x[0] not in no_list]
-        #     prefix = pat_uvi_f.match(uvi_force).group(1)
-        #     posfix = pat_uvi_f.match(uvi_force).group(2)
-        #     uvi_sense = prefix + 'F' + posfix
-        #
-        #     merging_symbol = (uvi_force, uvi_sense, '[PART_NOT_FOUND]', 'DNI: N.A.')
-        #     for symbol in symbols:
-        #         nets_at_symbol = list(symbol_dict[symbol].pins.values())
-        #         if uvi_force in nets_at_symbol and uvi_sense in nets_at_symbol:
-        #             merging_symbol = (uvi_force, uvi_sense, symbol, 'DNI: ' + str(symbol_dict[symbol].dni))
-        #             self.logger.debug(merging_symbol)
-        #     ok_list.append(merging_symbol)
-        #
-        # bad_list = [x for x in ok_list if '[PART_NOT_FOUND]' in x or 'True' in x[3]]
-        #
-        # # self.logger.setLevel(logging.INFO)
-        # if bad_list:
-        #     for x in bad_list:
-        #         self.logger.warn('FORCE_SENSE not connected at %s -- %s, %s %s', x[0], x[1], x[2], x[3])
-        #
-        # return ok_list
 
     def get_path_to_nets(self, pathway, the_nets):
         # self.logger.setLevel(logging.DEBUG)
@@ -247,4 +193,3 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         # TODO consider renaming it to iter_device_symbols_at_path
         self.logger.warn('deprecating get_get_device_symbols, use pathway.subset instead')
         return {y for x in pathway.path for y in x[:2] if y.symbol in self.device_symbols}
-
