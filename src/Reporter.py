@@ -11,7 +11,7 @@ class Reporter:
         pass
 
     def multi_site_check(self, oo):
-        self.logger.setLevel(logging.DEBUG)
+        # self.logger.setLevel(logging.DEBUG)
         az = PathAnalyzer()
         pins_dict = {}
         site_dict = {}
@@ -24,22 +24,18 @@ class Reporter:
             for i, site in enumerate(az.iter_all_device_symbols(oo)):
                 [nut] = oo.get_nodes_with_pin(symbol=site, pin=pin)
                 pw = oo.explore(nut)
-
                 if i == 0:
                     az.compile(pw)
                 is_symmetrical = az.is_multi_site_ok(pw)
-
                 site_dict.update({site: is_symmetrical})
             pins_dict.update({pin: site_dict.copy()})
-
-        self.logger.setLevel(logging.INFO)
+        # self.logger.setLevel(logging.INFO)
         return pins_dict
 
     @staticmethod
     def force_and_sense_check(oo):
-        pass
-        # az = PathAnalyzer()
-        # big_list = az.get_uvi_force_sense_merging_point(oo.SYMBOL_DICT, oo.NETS_DICT)
+        az = PathAnalyzer()
+        big_list = az.get_uvi_force_sense(oo)
 
     def create_channel_map(self, oo):
         az = PathAnalyzer()
