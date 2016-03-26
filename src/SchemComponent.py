@@ -100,6 +100,9 @@ class SchematicSymbol(SchematicComponent):
         self.dni = False
         self.site = 0
 
+    def __repr__(self):
+        return '<symbol> ' + self.id
+
 
 class SchematicNode:
 

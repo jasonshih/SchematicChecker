@@ -23,6 +23,7 @@ if __name__ == "__main__":
     fs_report = report.force_and_sense_check(oo)
     [print(x + ' --> ' + str(y)) for x, y in fs_report.items()]
 
-    # dni_report = report.create_dni_report(oo)
+    dni_report = report.create_dni_report(oo)
+    [print(x + ' --> ' + str(y)) for x, y in sorted(dni_report.items())]
 
     # xx.draw()

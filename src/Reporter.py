@@ -90,10 +90,18 @@ class Reporter:
         cm_lists = sorted(cm_lists, key=itemgetter(0))
         return cm_lists
 
-    @staticmethod
-    def create_dni_report(oo):
-        pass
+    def create_dni_report(self, oo):
+        self.logger.info('=== creating dni report ===')
 
-    @staticmethod
-    def show_component(oo):
-        pass
+        dni_list = [ss for symbol, ss in sorted(oo.SYMBOL_DICT.items()) if ss.dni]
+        dni_dict = defaultdict(list)
+        for symbol in dni_list:
+            if len(symbol.pins) > 2:
+                self.logger.warn('DNI of a non 2 pins component: %s', symbol.id)
+            for pin, nets in symbol.pins.items():
+                dni_dict[symbol.id].append(nets)
+        return dni_dict
+
+    def show_component(self, oo):
+        self.logger.info('=== creating channel map ===')
+
