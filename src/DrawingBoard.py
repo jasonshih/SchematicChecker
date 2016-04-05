@@ -9,13 +9,12 @@ class BlockVisualizer(SpecialSymbols, SpecialNets):
         self.logger = logging.getLogger(__name__)
         SpecialSymbols.__init__(self)
         SpecialNets.__init__(self)
-        self.path = []
 
-    def draw(self):
+    def draw(self, pathway):
         self.logger.info('drawing ...')
         g = p.AGraph(strict=False)
 
-        flatten_path = [y for x in self.path for y in x]
+        flatten_path = [y for x in pathway.path for y in x]
         flatten_nodes = [x for x in flatten_path if type(x) is SchematicNode]
         all_nodes = {x.symbol for x in flatten_nodes}
 
@@ -33,7 +32,7 @@ class BlockVisualizer(SpecialSymbols, SpecialNets):
 
             g.add_node(each_node, label=node_label)
 
-        for i in self.path:
+        for i in pathway.path:
 
             tail, tail_port = i[0].symbol, i[0].pin_name
             head, head_port = i[1].symbol, i[1].pin_name

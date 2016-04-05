@@ -1,4 +1,5 @@
 from src.Analyzer import PathAnalyzer
+from src.DrawingBoard import BlockVisualizer
 from collections import defaultdict
 from operator import itemgetter
 import logging
@@ -39,15 +40,23 @@ class Reporter:
         az = PathAnalyzer()
         pat = re.compile('(\w)(\w*)')
         big_list = az.get_uvi_force_sense(oo)
-        disconnected = {}
+        disconnected = []
         for uvi_group, postfix in sorted(big_list.items()):
             for pf in postfix:
                 mo = pat.match(pf)
                 pre, pos = mo.group(1), mo.group(2)
                 cond_1 = pre.capitalize() == 'F' and ''.join(['S', pos]) in postfix
                 cond_2 = pre.capitalize() == 'S' and ''.join(['F', pos]) in postfix
-                if not(cond_1 or cond_2):
-                    disconnected.update({uvi_group: postfix})
+
+                if cond_1 or cond_2:
+                    pass
+                    # self.logger.info('found from %s', str(postfix))
+                    # postfix.remove('F' + pos)
+                    # postfix.remove('S' + pos)
+                else:
+                    self.logger.warn('pair not found for %s : %s', uvi_group + pre + pos, ', '.join(postfix))
+                    disconnected.append(uvi_group + pre + pos)
+
         return disconnected
 
     def create_channel_map(self, oo):
@@ -102,6 +111,12 @@ class Reporter:
                 dni_dict[symbol.id].append(nets)
         return dni_dict
 
-    def show_component(self, oo):
-        self.logger.info('=== creating channel map ===')
+    def show_component(self, oo, symbol, pin):
+        self.logger.info('=== show component ===')
+
+        xx = BlockVisualizer()
+        [nut] = oo.get_nodes_with_pin(symbol=symbol, pin=pin)
+        this_path = oo.explore(nut)
+        xx.draw(this_path)
+
 
