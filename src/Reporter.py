@@ -74,21 +74,22 @@ class Reporter:
 
                 [nut] = oo.get_nodes_with_pin(site, pin)
                 this_path = oo.explore(nut)
-                resources = this_path.subset.keys()
+                terminals = this_path.subset.keys()
 
-                if not resources:
+                if not terminals:
                     self.logger.warn('no tester channel assigned for pin: %s', pin)
                     cm[(pin, 'N/C')].append('_')
                 else:
-                    for resource in resources:
+                    for terminal in terminals:
                         # TODO fix the 0 0 -1 -1 below.
-                        edge_obj = this_path.subset[resource][0][0][-1][-1]
-                        if resource == 'AGND' and len(resources) == 1:
+                        last_link = -1
+                        edge_obj = this_path.subset[terminal][0][last_link].edge
+                        if terminal == 'AGND' and len(terminals) == 1:
                             cm[(pin, 'GND')].append('_')
                         elif edge_obj.pin_channel:
                             cm[(pin, edge_obj.pin_type)].append(edge_obj.pin_channel)
                         else:
-                            self.logger.debug('resource.tester_channel is empty at nets: %s', resource)
+                            self.logger.debug('terminal.tester_channel is empty at nets: %s', terminal)
 
         for u, v in cm.items():
             combined = list(u)
@@ -101,25 +102,7 @@ class Reporter:
 
     def get_device_pins_to_gnd(self, oo):
         self.logger.info('=== creating list of device pins connected to ground ===')
-
-        az = PathAnalyzer()
-        cm = defaultdict(list)
-        cm_lists = []
-
-        for site in ['X0']:
-            for pin in az.iter_all_pins_in_symbol(site, oo):
-
-                if pin.startswith('CDC'):
-                    # TODO find out why CDC_LO_M and _P are messed up. and VPP too.
-                    continue
-
-                [nut] = oo.get_nodes_with_pin(site, pin)
-                this_path = oo.explore(nut)
-
-                if 'AGND' in this_path.subset.keys():
-                    for ea in this_path.subset['AGND']:
-                        if len(ea[0]) == 1:
-                            self.logger.warn('direct to ground: %s' %pin)
+        return [x for x in oo.NETS_DICT['AGND'] if x[0] == 'X0']
 
     def create_dni_report(self, oo):
         self.logger.info('=== creating dni report ===')

@@ -1,5 +1,5 @@
 from src.Explorer import Explorer
-from src.DrawingBoard import BlockVisualizer
+# from src.DrawingBoard import BlockVisualizer
 from src.Reporter import Reporter
 import logging
 
@@ -15,10 +15,10 @@ if __name__ == "__main__":
 
     # ms_report = report.multi_site_check(oo)
     # [print(', pin: '.join(x)) for x in ms_report]
-    #
+
     # cm_report = report.create_channel_map(oo)
     # [print(', '.join(x)) for x in cm_report]
-
+    #
     agnd_report = report.get_device_pins_to_gnd(oo)
     #
     # fs_report = report.force_and_sense_check(oo)

@@ -84,9 +84,6 @@ class Explorer(SourceReader, SpecialSymbols):
         SpecialSymbols.__init__(self)
         self.seen = []
         self.path_obj = []
-        # self.tab = ''
-        # self.tester_connections = []
-        # self.device_connections = []
 
     def explore(self, ntail, level=0):
         # main function call for this class. finding path in this format:
@@ -123,6 +120,7 @@ class Explorer(SourceReader, SpecialSymbols):
         else:
             pass
 
+        # TODO consider using partial functools
         return SchematicPath(self.path_obj, PathAnalyzer())
 
     def tail_to_edge(self, tail, level):
@@ -182,7 +180,8 @@ class Explorer(SourceReader, SpecialSymbols):
 
     def record_path_obj(self, ntail, edge, nheads):
         for nhead in nheads:
-            self.path_obj.append((ntail, nhead, edge))
+            link = SchematicLink((ntail, nhead, edge))
+            self.path_obj.append(link)
 
     def clear_found_ports(self):
         # self.logger.debug('clearing self.seen and self.path ...')

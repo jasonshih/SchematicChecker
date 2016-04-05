@@ -155,26 +155,45 @@ class SchematicEdge:
 
 
 class SchematicPath(SpecialSymbols, SpecialNets):
+    """consist of a collection of links"""
 
     def __init__(self, path, analyzer_obj):
         SpecialSymbols.__init__(self)
         SpecialNets.__init__(self)
         self.path = path
-        self.origin = path[0][0]
+        self.origin = path[0].tail
         self.subset = defaultdict(list)
         self.az = analyzer_obj
 
-        self.iter_devices = (y for x in path for y in x[:2] if y.symbol in self.device_symbols)
-        self.iter_testers = (y for x in path for y in x[2:3] if y.tester_board in self.tester_symbols)
+        self.iter_devices = (node for link in path for node in link.nodes if node.symbol in self.device_symbols)
+        self.iter_testers = (link.edge for link in path if link.edge.tester_board in self.tester_symbols)
 
         self.populate_subset()
 
     def populate_subset(self):
         # az = PathAnalyzer()
         for channel in self.iter_testers:
-            self.subset[channel.name].append(self.az.get_path_to_nets(self, channel.name))
+            self.subset[channel.name].extend(self.az.get_path_to_nets(self, channel.name))
 
         for plane in self.plane:
             to_plane = self.az.get_path_to_nets(self, plane)
             if to_plane:
-                self.subset[plane].append(to_plane)
+                self.subset[plane].extend(to_plane)
+
+
+class SchematicLink(SpecialSymbols, SpecialNets):
+    """consist of (node, node, edge)"""
+
+    def __init__(self, link: tuple):
+        SpecialSymbols.__init__(self)
+        SpecialNets.__init__(self)
+
+        if len(link) != 3:
+            raise ValueError
+
+        self.link = link
+        self.tail, self.head, self.edge = link
+        self.nodes = [self.tail, self.head]
+
+    def __repr__(self):
+        return '<link>: ' + ' -- '.join([self.tail.name, self.edge.name, self.head.name])
