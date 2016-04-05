@@ -16,8 +16,9 @@ class Reporter:
         self.logger.info('=== multi site check ===')
 
         az = PathAnalyzer()
-        pins_dict = {}
-        site_dict = {}
+
+        asymmetrical_list = []
+
         for pin in az.iter_all_pins_in_symbol('X0', oo):
 
             if pin.startswith('CDC'):
@@ -30,9 +31,11 @@ class Reporter:
                 if i == 0:
                     az.compile(pw)
                 is_symmetrical = az.is_multi_site_ok(pw)
-                site_dict.update({site: is_symmetrical})
-            pins_dict.update({pin: site_dict.copy()})
-        return pins_dict
+
+                if not is_symmetrical:
+                    asymmetrical_list.append((site, pin))
+
+        return asymmetrical_list
 
     def force_and_sense_check(self, oo):
         self.logger.info('=== force and sense check ===')
@@ -50,9 +53,6 @@ class Reporter:
 
                 if cond_1 or cond_2:
                     pass
-                    # self.logger.info('found from %s', str(postfix))
-                    # postfix.remove('F' + pos)
-                    # postfix.remove('S' + pos)
                 else:
                     self.logger.warn('pair not found for %s : %s', uvi_group + pre + pos, ', '.join(postfix))
                     disconnected.append(uvi_group + pre + pos)
@@ -69,7 +69,7 @@ class Reporter:
             for pin in az.iter_all_pins_in_symbol('X0', oo):
 
                 if pin.startswith('CDC'):
-                    # TODO find out why CDC_LO_M and _P are messed up.
+                    # TODO find out why CDC_LO_M and _P are messed up. and VPP too.
                     continue
 
                 [nut] = oo.get_nodes_with_pin(site, pin)
@@ -99,6 +99,28 @@ class Reporter:
         cm_lists = sorted(cm_lists, key=itemgetter(0))
         return cm_lists
 
+    def get_device_pins_to_gnd(self, oo):
+        self.logger.info('=== creating list of device pins connected to ground ===')
+
+        az = PathAnalyzer()
+        cm = defaultdict(list)
+        cm_lists = []
+
+        for site in ['X0']:
+            for pin in az.iter_all_pins_in_symbol(site, oo):
+
+                if pin.startswith('CDC'):
+                    # TODO find out why CDC_LO_M and _P are messed up. and VPP too.
+                    continue
+
+                [nut] = oo.get_nodes_with_pin(site, pin)
+                this_path = oo.explore(nut)
+
+                if 'AGND' in this_path.subset.keys():
+                    for ea in this_path.subset['AGND']:
+                        if len(ea[0]) == 1:
+                            self.logger.warn('direct to ground: %s' %pin)
+
     def create_dni_report(self, oo):
         self.logger.info('=== creating dni report ===')
 
@@ -118,5 +140,3 @@ class Reporter:
         [nut] = oo.get_nodes_with_pin(symbol=symbol, pin=pin)
         this_path = oo.explore(nut)
         xx.draw(this_path)
-
-

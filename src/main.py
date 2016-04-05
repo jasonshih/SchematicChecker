@@ -14,16 +14,18 @@ if __name__ == "__main__":
     oo.read_xlsx(xlsx_file)
 
     # ms_report = report.multi_site_check(oo)
-    # [print(str(x) + ' --> ' + str(v)) for x, v in ms_report.items() if False in v.values()]
+    # [print(', pin: '.join(x)) for x in ms_report]
     #
     # cm_report = report.create_channel_map(oo)
-    # [print(x) for x in cm_report]
+    # [print(', '.join(x)) for x in cm_report]
+
+    agnd_report = report.get_device_pins_to_gnd(oo)
     #
-    fs_report = report.force_and_sense_check(oo)
+    # fs_report = report.force_and_sense_check(oo)
     # [print(x) for x in fs_report]
     #
     # dni_report = report.create_dni_report(oo)
     # [print(x + ' --> ' + ', '.join(sorted(y))) for x, y in sorted(dni_report.items())]
 
-    report.show_component(oo, 'X0', 'VREG_L3')
+    # report.show_component(oo, 'X0', 'VREG_L3')
 

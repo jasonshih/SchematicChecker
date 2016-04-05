@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mainwindow.ui'
 #
-# Created: Tue Apr  5 07:35:59 2016
+# Created: Tue Apr  5 09:13:29 2016
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -42,8 +42,6 @@ class Ui_MainWindow(object):
         self.schematic_tests.setSizePolicy(sizePolicy)
         self.schematic_tests.setObjectName(_fromUtf8("schematic_tests"))
         self.horizontalLayout = QtGui.QHBoxLayout(self.schematic_tests)
-        self.horizontalLayout.setSpacing(-1)
-        self.horizontalLayout.setContentsMargins(-1, -1, -1, 20)
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
         self.verticalLayout = QtGui.QVBoxLayout()
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
@@ -53,7 +51,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.st_list = QtGui.QListWidget(self.st_groupbox)
         self.st_list.setAlternatingRowColors(True)
-        self.st_list.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
+        self.st_list.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.st_list.setObjectName(_fromUtf8("st_list"))
         item = QtGui.QListWidgetItem()
         self.st_list.addItem(item)
@@ -72,6 +70,9 @@ class Ui_MainWindow(object):
         self.verticalLayout.addItem(spacerItem)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.st_text_edit = QtGui.QPlainTextEdit(self.schematic_tests)
+        font = QtGui.QFont()
+        font.setFamily(_fromUtf8("Menlo"))
+        self.st_text_edit.setFont(font)
         self.st_text_edit.setObjectName(_fromUtf8("st_text_edit"))
         self.horizontalLayout.addWidget(self.st_text_edit)
         self.tabWidget.addTab(self.schematic_tests, _fromUtf8(""))
@@ -152,7 +153,7 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuHelp.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
