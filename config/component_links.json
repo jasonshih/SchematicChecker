@@ -1,0 +1,72 @@
+{"records":
+[
+  {
+    "name": "std_8pins_relay",
+    "component": [
+      "300-23460-0237"
+    ],
+    "active": true,
+    "links": {
+      "off": {
+        "(1, N1)": "(8, N2)",
+        "(2, S1)": "(3, COM1)",
+        "(3, COM1)": "(2, S1)",
+        "(4, S2)": null,
+        "(5, S4)": null,
+        "(6, COM2)": "(7, S3)",
+        "(7, S3)": "(6, COM2)",
+        "(8, N2)": "(1, N1)"
+      },
+      "on": {
+        "(1, N1)": "(8, N2)",
+        "(2, S1)": null,
+        "(3, COM1)": "(4, S2)",
+        "(4, S2)": "(3, COM1)",
+        "(5, S4)": "(6, COM2)",
+        "(6, COM2)": "(5, S4))",
+        "(7, S3)": null,
+        "(8, N2)": "(1, N1)"
+      }
+    }
+  },
+  {
+    "name": "std_2pins_passive",
+    "component": [
+      "100-55258-0105", "105-35077-3222", "100-46302-1002", "105-35273-2475", "100-46312-0103", "100-76445-31R6",
+      "100-46313-0160", "105-35273-2225", "100-46302-1212", "100-46311-0000"
+    ],
+    "active": false,
+    "links": {
+      "internal": {
+        "(1, POS)": "(2, NEG)",
+        "(2, NEG)": "(1, POS)"
+      }
+    }
+  },
+  {
+    "name": "jumper",
+    "component": [
+      "EMBEDDED_SHORTING_BAR"
+    ],
+    "active": false,
+    "links": {
+      "internal": {
+        "(1, IO1)": "(2, IO2)",
+        "(2, IO2)": "(1, IO1)"
+      }
+    }
+  },
+  {
+    "name": "terminal",
+    "component": [
+      "terminal", "plane"
+    ],
+    "active": false,
+    "links": {
+      "internal": {
+        "(00, plane)": null
+      }
+    }
+  }
+]
+}

@@ -1,11 +1,11 @@
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from src import mainwindow_ui
-from src.Explorer import *
-from src.Reporter import *
-
 import logging
 import sys
+
+from PyQt4.QtGui import *
+
+from src.Explorer import *
+from src.Reporter import *
+from ui import mainwindow_ui
 
 
 class Launcher(QMainWindow, mainwindow_ui.Ui_MainWindow):

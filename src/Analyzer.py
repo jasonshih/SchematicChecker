@@ -25,7 +25,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         self.path_reference = []
         self.path_under_test = []
 
-    def compile(self, pathway):
+    def compile(self, pathway: SchematicPath):
         """Setting a path as the reference for is_multi_site_ok.
         :param pathway: list of list of nodes and edge.
         """
@@ -36,12 +36,12 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         self.path_reference = self.__mask_symbol_and_nets_identifier(pathway)
 
         self.logger.debug('original reference path:')
-        [self.logger.debug('%s', x) for x in pathway.path]
+        [self.logger.debug('%s', x) for x in pathway.links]
 
         self.logger.debug('masked reference path:')
         [self.logger.debug('%s', x) for x in self.path_reference]
 
-    def is_multi_site_ok(self, pathway):
+    def is_multi_site_ok(self, pathway: SchematicPath):
         """Comparing one path with a reference path.
         :param pathway: list of list of nodes and edge.
         """
@@ -84,10 +84,10 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             checks[mo.group(1)].append(mo.group(2))
         return checks
 
-    def get_path_to_nets(self, pathway, the_nets):
+    def get_path_to_nets(self, pathway: SchematicPath, the_nets):
         # self.logger.setLevel(logging.DEBUG)
         # tail, head, edge = 0, 1, 2
-        all_nets_in_path = [link.edge.name for link in pathway.path]
+        all_nets_in_path = [link.edge.name for link in pathway.links]
         occurrence = all_nets_in_path.count(the_nets)
 
         all_path_to_plane = []
@@ -98,10 +98,10 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             for index in matches_indexes:
                 self.logger.debug('-- searching connection to %s, starting [%s] --', the_nets, index)
                 path_to_plane = []
-                z = pathway.path[index].head.name
+                z = pathway.links[index].head.name
                 # TODO try reveresed
                 for i in range(index, -1, -1):
-                    link = pathway.path[i]
+                    link = pathway.links[i]
                     if link.head.name == z:
                         self.logger.debug('recording: [%s] %s', i, link)
                         path_to_plane.insert(0, link)
@@ -112,9 +112,6 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
                 self.logger.debug('saving with path length: %s', len(path_to_plane))
                 all_path_to_plane.append(path_to_plane)
 
-        # [u for t in path_to_plane for u in t[0:1]] tails
-        # [u for t in path_to_plane for u in t[1:2]] heads
-        # [u for t in path_to_plane for u in t[2:3]] edges
         # self.logger.setLevel(logging.INFO)
         return all_path_to_plane
 
@@ -133,7 +130,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         else:
             return re.sub('([a-zA-Z]+[0-9]+)[a-zA-Z]+\|', '\\1#|', match_obj.group(0))
 
-    def __mask_symbol_and_nets_identifier(self, pathway):
+    def __mask_symbol_and_nets_identifier(self, pathway: SchematicPath):
         # self.logger.setLevel(logging.DEBUG)
         # TODO consider globalizing these.
         pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
@@ -146,7 +143,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         pat_common = re.compile('(\w*)\d*$')
 
         outer_list = []
-        for link in pathway.path:
+        for link in pathway.links:
             inner_list = []
             for y in link.nodes:
                 if y.symbol in self.connector_symbols:
@@ -187,9 +184,9 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
     def get_tester_nets(self, pathway: SchematicPath):
         self.logger.warn('deprecating get_get_device_symbols, use pathway.subset instead')
         # TODO consider renaming it to iter_tester_nets_at_path
-        return {link.edge for link in pathway.path if link.edge.tester_board in self.tester_symbols}
+        return {link.edge for link in pathway.links if link.edge.tester_board in self.tester_symbols}
 
     def get_device_symbols(self, pathway: SchematicPath):
         # TODO consider renaming it to iter_device_symbols_at_path
         self.logger.warn('deprecating get_get_device_symbols, use pathway.subset instead')
-        return {node for link in pathway.path for node in link.nodes if node.symbol in self.device_symbols}
+        return {node for link in pathway.links for node in link.nodes if node.symbol in self.device_symbols}

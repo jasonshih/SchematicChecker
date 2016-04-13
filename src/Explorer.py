@@ -29,7 +29,7 @@ class SourceReader(object):
         ws = wb.get_active_sheet()
         cc = ''
 
-        unknown_parts = []
+        # unknown_parts = []
 
         for row in ws.rows:
             for cell in row:
@@ -38,21 +38,24 @@ class SourceReader(object):
 
                     if len(ch) == 3:
 
-                        if ch[1].startswith('10'):
-                            oo = SchematicSymbol('std_2pins_passive')
+                        # if ch[1].startswith('10'):
+                        #     oo = SchematicSymbol('std_2pins_passive')
+                        #
+                        # elif ch[1].startswith('300-23460'):
+                        #     oo = SchematicSymbol('std_8pins_relay')
+                        #
+                        # elif ch[1].startswith('EMBEDDED_SHORTING_BAR'):
+                        #     oo = SchematicSymbol('jumper')
 
-                        elif ch[1].startswith('300-23460'):
-                            oo = SchematicSymbol('std_8pins_relay')
-
-                        elif ch[1].startswith('EMBEDDED_SHORTING_BAR'):
-                            oo = SchematicSymbol('jumper')
-
-                        else:
-                            oo = SchematicSymbol()
-                            if ch[1] not in unknown_parts:
-                                self.logger.warn('reading... unknown type: %s', ch[1])
-                                # print('unknown part type: ' + ch[1])
-                                unknown_parts.append(ch[1])
+                        # else:
+                        #     oo = SchematicSymbol()
+                        # if ch[2] == 'K77':
+                        #     pass
+                        oo = SchematicSymbol(ch[1])
+                        # if ch[1] not in unknown_parts:
+                        #     # self.logger.warn('reading... unknown type: %s', ch[1])
+                        #     # print('unknown part type: ' + ch[1])
+                        #     unknown_parts.append(ch[1])
 
                         [_, oo.type, oo.id] = ch
                         self.SYMBOL_DICT.update({oo.id: oo})
@@ -158,6 +161,7 @@ class Explorer(SourceReader, SpecialSymbols):
                     # internal connections within symbol
                     states = self.SYMBOL_DICT[head.symbol].links.keys()
                     for state in states:
+                        self.logger.debug('symbol, state: %s, %s' % (symbol, state))
                         linked_ports = self.SYMBOL_DICT[symbol].links[state][(pin_num, pin_name)]
                         linked_ports = [SchematicNode((symbol, u, v)) for (u, v) in linked_ports]
                         self.record_path_obj(head, SchematicEdge(state), linked_ports)

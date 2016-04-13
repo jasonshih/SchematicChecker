@@ -10,11 +10,11 @@ class BlockVisualizer(SpecialSymbols, SpecialNets):
         SpecialSymbols.__init__(self)
         SpecialNets.__init__(self)
 
-    def draw(self, pathway):
+    def draw(self, pathway: SchematicPath):
         self.logger.info('drawing ...')
         g = p.AGraph(strict=False)
 
-        flatten_path = [y for x in pathway.path for y in x]
+        flatten_path = [y for lo in pathway.links for y in lo.link]
         flatten_nodes = [x for x in flatten_path if type(x) is SchematicNode]
         all_nodes = {x.symbol for x in flatten_nodes}
 
@@ -32,10 +32,10 @@ class BlockVisualizer(SpecialSymbols, SpecialNets):
 
             g.add_node(each_node, label=node_label)
 
-        for i in pathway.path:
+        for link in pathway.links:
 
-            tail, tail_port = i[0].symbol, i[0].pin_name
-            head, head_port = i[1].symbol, i[1].pin_name
+            tail, tail_port = link.tail.symbol, link.tail.pin_name
+            head, head_port = link.head.symbol, link.head.pin_name
             if tail == head:
                 tail_port += ':w'
                 head_port += ':w'
@@ -52,9 +52,9 @@ class BlockVisualizer(SpecialSymbols, SpecialNets):
 
             if tail == head:
                 continue
-                # g.add_edge(tail, head, label=i[2], tailport=tail_port, headport=head_port, style='dotted')
+                # g.add_edge(tail, head, label=link.edge, tailport=tail_port, headport=head_port, style='dotted')
             else:
-                g.add_edge(tail, head, label=i[2], tailport=tail_port, headport=head_port,
+                g.add_edge(tail, head, label=link.edge, tailport=tail_port, headport=head_port,
                            color=edge_color, style=edge_style)
 
         devices = {x for x in all_nodes if x in self.device_symbols}

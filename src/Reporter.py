@@ -1,5 +1,6 @@
 from src.Analyzer import PathAnalyzer
 from src.DrawingBoard import BlockVisualizer
+from src.SchemComponent import *
 from collections import defaultdict
 from operator import itemgetter
 import logging
@@ -86,8 +87,8 @@ class Reporter:
                         edge_obj = this_path.subset[terminal][0][last_link].edge
                         if terminal == 'AGND' and len(terminals) == 1:
                             cm[(pin, 'GND')].append('_')
-                        elif edge_obj.pin_channel:
-                            cm[(pin, edge_obj.pin_type)].append(edge_obj.pin_channel)
+                        elif edge_obj.channel:
+                            cm[(pin, edge_obj.channel.ch_type)].append(edge_obj.channel.ch_map)
                         else:
                             self.logger.debug('terminal.tester_channel is empty at nets: %s', terminal)
 
@@ -100,9 +101,17 @@ class Reporter:
         cm_lists = sorted(cm_lists, key=itemgetter(0))
         return cm_lists
 
-    def get_device_pins_to_gnd(self, oo):
-        self.logger.info('=== creating list of device pins connected to ground ===')
-        return [x for x in oo.NETS_DICT['AGND'] if x[0] == 'X0']
+    def get_pins_to_nets(self, oo, symbol, nets):
+        self.logger.info('=== creating list of device pins connected to nets ===')
+        return sorted([SchematicNode(x) for x in oo.NETS_DICT[nets] if x[0] in symbol], key=lambda x: x.pin_name)
+
+    def get_symbols_to_nets(self, oo, nets):
+        self.logger.info('=== creating list of symbols connected to nets ===')
+        return sorted([SchematicNode(x) for x in oo.NETS_DICT[nets]], key=lambda x: x.symbol)
+
+
+    def get_nets_count(self, oo):
+        return sorted([(x, len(y)) for x, y in oo.NETS_DICT.items()], key=lambda x:x[1], reverse=True)
 
     def create_dni_report(self, oo):
         self.logger.info('=== creating dni report ===')
