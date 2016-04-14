@@ -109,7 +109,6 @@ class Reporter:
         self.logger.info('=== creating list of symbols connected to nets ===')
         return sorted([SchematicNode(x) for x in oo.NETS_DICT[nets]], key=lambda x: x.symbol)
 
-
     def get_nets_count(self, oo):
         return sorted([(x, len(y)) for x, y in oo.NETS_DICT.items()], key=lambda x:x[1], reverse=True)
 

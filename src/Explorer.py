@@ -163,10 +163,12 @@ class Explorer(SourceReader, SpecialSymbols):
                     for state in states:
                         self.logger.debug('symbol, state: %s, %s' % (symbol, state))
                         linked_ports = self.SYMBOL_DICT[symbol].links[state][(pin_num, pin_name)]
-                        linked_ports = [SchematicNode((symbol, u, v)) for (u, v) in linked_ports]
-                        self.record_path_obj(head, SchematicEdge(state), linked_ports)
-
-                        all_linked_ports.extend(linked_ports)
+                        # linked_ports = [SchematicNode((symbol, u, v)) for (u, v) in linked_ports]
+                        if linked_ports:
+                            # linked_ports = [SchematicNode((symbol, u[0], u[1])) for u in linked_ports]
+                            linked_ports = [SchematicNode((symbol, linked_ports[0], linked_ports[1]))]
+                            self.record_path_obj(head, SchematicEdge(state), linked_ports)
+                            all_linked_ports.extend(linked_ports)
             else:
                 self.logger.debug('DNI: symbol %s', symbol)
 

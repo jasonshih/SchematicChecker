@@ -41,9 +41,10 @@ class SchematicComponent:
     known_comp_types = []
 
     def __init__(self, comp_type=None):
+        pin_pat = re.compile('\((\w+)[,\s]+(\w+)\)')
         self.logger = logging.getLogger(__name__)
         self.type = ''
-        self.links = {}
+        self.links = defaultdict(dict)
         self.pins = {}
 
         if not self.component_links:
@@ -58,7 +59,21 @@ class SchematicComponent:
             for c in x:
                 if comp_type in c['component']:
                     # TODO: fix this, imported links are not in tuple form
-                    self.links = c['links']
+                    # self.links = c['links']
+                    for state, links in c['links'].items():
+                        for m, n in links.items():
+                            pin_num = pin_pat.match(m).group(1)
+                            pin_name = pin_pat.match(m).group(2)
+                            linker = (pin_num, pin_name)
+
+                            if n:
+                                pin_num = pin_pat.match(n).group(1)
+                                pin_name = pin_pat.match(n).group(2)
+                                linked = (pin_num, pin_name)
+                            else:
+                                linked = None
+
+                            self.links[state].update({linker: linked})
 
                     # TODO: ugly. should be able to automatically detect list of pins.
                     if c['name'] in ['plane', 'terminal']:
