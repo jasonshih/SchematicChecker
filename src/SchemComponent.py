@@ -22,16 +22,16 @@ class SpecialSymbols:
 class SpecialNets:
 
     def __init__(self):
-        self.plane = {
-            'AGND': '[AGND]|00|plane',
-            '+5V': '[+5V]|00|plane',
-            '-5V': '[-5V]|00|plane',
-            '+5V_RLY': '[+5V_RLY]|00|plane',
-            'P5V': '[P5V]|00|plane',
-            'N5V': '[N5V]|00|plane',
-            'P15V': '[P15V]|00|plane',
-            'N15V': '[N15V]|00|plane',
-            'unconnected': '[WARNING]|00|terminal'
+        self.special_nets = {
+            'AGND': [('[AGND]', '00', 'plane')],
+            '+5V': [('[+5V]', '00', 'plane')],
+            '-5V': [('[-5V]', '00', 'plane')],
+            '+5V_RLY': [('[+5V_RLY]', '00', 'plane')],
+            'P5V': [('[P5V]', '00', 'plane')],
+            'N5V': [('[N5V]', '00', 'plane')],
+            'P15V': [('[P15V]', '00', 'plane')],
+            'N15V': [('[N15V]', '00', 'plane')],
+            'unconnected': [('[WARNING]', '00', 'terminal')]
         }
 
 
@@ -129,7 +129,7 @@ class SchematicPath(SpecialSymbols, SpecialNets):
         for channel in self.iter_testers:
             self.subset[channel.name].extend(self.az.get_path_to_nets(self, channel.name))
 
-        for plane in self.plane:
+        for plane in self.special_nets:
             to_plane = self.az.get_path_to_nets(self, plane)
             if to_plane:
                 self.subset[plane].extend(to_plane)

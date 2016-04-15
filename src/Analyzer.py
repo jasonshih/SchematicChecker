@@ -159,7 +159,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         for t in outer_list:
             u = t[2].name
 
-            if u in self.plane:
+            if u in self.special_nets:
                 v = u
             elif pat_hidden.search(u):
                 v = pat_hidden.sub(r'hidden', u)
