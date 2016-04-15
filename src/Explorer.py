@@ -19,7 +19,7 @@ class SourceReader(object):
 
         self.NETS_DICT = {
             'AGND': [('[AGND]', '00', 'plane')],
-            'unconnected': [('[WARNING]', '00', 'terminal')],
+            'unconnected': [('[WARNING]', '00', 'plane')],
         }
 
     def read_xlsx(self, file_name):
@@ -162,6 +162,10 @@ class Explorer(SourceReader, SpecialSymbols):
                     states = self.SYMBOL_DICT[head.symbol].links.keys()
                     for state in states:
                         self.logger.debug('symbol, state: %s, %s' % (symbol, state))
+
+                        if symbol == '[WARNING]':
+                            pass
+
                         linked_ports = self.SYMBOL_DICT[symbol].links[state][(pin_num, pin_name)]
                         # linked_ports = [SchematicNode((symbol, u, v)) for (u, v) in linked_ports]
                         if linked_ports:

@@ -58,8 +58,6 @@ class SchematicComponent:
             x = self.component_links['records']
             for c in x:
                 if comp_type in c['component']:
-                    # TODO: fix this, imported links are not in tuple form
-                    # self.links = c['links']
                     for state, links in c['links'].items():
                         for m, n in links.items():
                             pin_num = pin_pat.match(m).group(1)
@@ -78,7 +76,7 @@ class SchematicComponent:
                     # TODO: ugly. should be able to automatically detect list of pins.
                     if c['name'] in ['plane', 'terminal']:
                         self.pins.update({
-                            ('00', 'plane'): ''
+                            ('00', 'plane'): None
                         })
         else:
             self.logger.warn('unknown comp_type: %s' % comp_type)
