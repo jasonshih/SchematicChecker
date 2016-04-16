@@ -13,8 +13,8 @@ if __name__ == "__main__":
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     oo.read_xlsx(xlsx_file)
 
-    ms_report = report.multi_site_check(oo)
-    [print(' at pin: '.join(x)) for x in ms_report]
+    # ms_report = report.multi_site_check(oo)
+    # [print(' at pin: '.join(x)) for x in ms_report]
 
     cm_report = report.create_channel_map(oo)
     [print(', '.join(x)) for x in cm_report]

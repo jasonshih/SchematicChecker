@@ -55,7 +55,7 @@ class Reporter:
                 if cond_1 or cond_2:
                     pass
                 else:
-                    self.logger.warn('pair not found for %s : %s', uvi_group + pre + pos, ', '.join(postfix))
+                    self.logger.warn('pair not found for %s: found postfixes: %s', uvi_group + pre + pos, ', '.join(postfix))
                     disconnected.append(uvi_group + pre + pos)
 
         return disconnected

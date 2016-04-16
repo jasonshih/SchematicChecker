@@ -85,34 +85,33 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         return checks
 
     def get_path_to_nets(self, pathway: SchematicPath, the_nets):
-        # self.logger.setLevel(logging.DEBUG)
-        # tail, head, edge = 0, 1, 2
+        self.logger.setLevel(logging.INFO)
         all_nets_in_path = [link.edge.name for link in pathway.links]
         occurrence = all_nets_in_path.count(the_nets)
 
         all_path_to_plane = []
         if occurrence == 0:
-            self.logger.debug('No path from %s to %s', pathway.origin.name, the_nets)
+            self.logger.debug('get_path_to_nets: No path from %s to %s', pathway.origin.name, the_nets)
         else:
             matches_indexes = (i for i, n in enumerate(all_nets_in_path) if n == the_nets)
             for index in matches_indexes:
-                self.logger.debug('-- searching connection to %s, starting [%s] --', the_nets, index)
+                self.logger.debug('get_path_to_nets: %s, starting index [%s] --', the_nets, index)
                 path_to_plane = []
                 z = pathway.links[index].head.name
                 # TODO try reveresed
                 for i in range(index, -1, -1):
                     link = pathway.links[i]
                     if link.head.name == z:
-                        self.logger.debug('recording: [%s] %s', i, link)
+                        self.logger.debug('get_path_to_nets: recording: [%s] %s', i, link)
                         path_to_plane.insert(0, link)
                         z = link.tail.name
                     else:
-                        self.logger.debug('ignoring: [%s] %s', i, link)
+                        self.logger.debug('get_path_to_nets: ignoring: [%s] %s', i, link)
 
-                self.logger.debug('saving with path length: %s', len(path_to_plane))
+                self.logger.debug('get_path_to_nets: saving with path length: %s', len(path_to_plane))
                 all_path_to_plane.append(path_to_plane)
 
-        # self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
         return all_path_to_plane
 
     @staticmethod
@@ -131,7 +130,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             return re.sub('([a-zA-Z]+[0-9]+)[a-zA-Z]+\|', '\\1#|', match_obj.group(0))
 
     def __mask_symbol_and_nets_identifier(self, pathway: SchematicPath):
-        # self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
         # TODO consider globalizing these.
         pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
         pat_symbol_conn = re.compile('^J\d+([\w|]+)IO\d+', re.I)
@@ -178,7 +177,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
                 self.logger.warn('unknown nets type: %s', v)
 
             final_list.append((t[0], t[1], v))
-        # self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
         return final_list
 
     def get_tester_nets(self, pathway: SchematicPath):

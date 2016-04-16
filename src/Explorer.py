@@ -38,12 +38,20 @@ class SourceReader(SpecialNets, SpecialSymbols):
                     if 'Part List Exclude=DNI' in this_line:
                         self.SYMBOL_DICT[oo.id].dni = True
 
+                    if oo.unknown_links:
+                        self.logger.warn('unknown comp_type prop: ' + this_line)
+
                 if "Explicit Pin:" in this_line:
                     cleaned_line = this_line.strip().replace('\'', '').split(' ')
                     if len(cleaned_line) == 5:
                         [_, _, pin_num, pin_name, nets] = cleaned_line
                         self.SYMBOL_DICT[oo.id].pins.update({(pin_num, pin_name): nets})
                         self.NETS_DICT[nets].append((oo.id, pin_num, pin_name))
+
+                        if oo.unknown_links \
+                                and oo.id not in self.device_symbols \
+                                and oo.id not in self.connector_symbols:
+                            self.logger.warn('unknown comp_type pins: ' + this_line)
 
         self.logger.info('importing schematic symbol and nets database done!')
 
@@ -60,7 +68,8 @@ class Explorer(SourceReader, SpecialSymbols):
     def explore(self, ntail, level=0):
         # main function call for this class. finding path in this format:
         #     TAIL   -- EDGE -- HEAD
-        self.logger.debug('finding path for %s, at level %s', ntail.symbol, level)
+        self.logger.debug('-' * 60)
+        self.logger.debug('exploring: %s, at level %s', ntail.name, level)
 
         node_tail = ntail.tuple
         if level == 0:
@@ -69,10 +78,14 @@ class Explorer(SourceReader, SpecialSymbols):
         if len(node_tail) != 3:
             raise ValueError
 
+        if ntail.name == 'U15|7|OUT':
+            pass
+
         # PROCESS FOR THIS ITERATION
         self.seen_nodes.append(ntail.name)
         edge = self.__tail_to_edge(ntail)
         nheads = self.__edge_to_heads(edge)
+        self.logger.debug('exploring: found edge %s', edge.name)
 
         # RECORD LINK
         self.__record_link(ntail, edge, nheads)
@@ -86,10 +99,16 @@ class Explorer(SourceReader, SpecialSymbols):
         # RECURSIVE SEARCH
         if next_tails:
             level += 1
+            self.logger.debug('explored: %s, found link to %s', ntail.name, str(next_tails))
+
+            if level > 20:
+                pass
+
             for next_tail in next_tails:
                 self.explore(next_tail, level)
             level -= 1
         else:
+            self.logger.debug('explored: %s, found no more link', ntail.name)
             pass
 
         # TODO consider using partial functools
@@ -125,15 +144,17 @@ class Explorer(SourceReader, SpecialSymbols):
                     # internal connections within symbol
                     states = self.SYMBOL_DICT[head.symbol].links.keys()
                     for state in states:
-                        self.logger.debug('symbol, state: %s, %s' % (symbol, state))
+                        # self.logger.debug('symbol, state: %s, %s' % (symbol, state))
                         linked_nodes = self.SYMBOL_DICT[symbol].links[state][(pin_num, pin_name)]
                         if linked_nodes:
-                            # TODO: future improvement to have multiple linked nodes.
-                            linked_nodes = [SchematicNode((symbol, linked_nodes[0], linked_nodes[1]))]
-                            self.__record_link(head, SchematicEdge(state), linked_nodes)
-                            all_linked_ports.extend(linked_nodes)
+                            # TODO: future improvement to have multiple linked nodes. VERY UGLY.
+                            linked_node = SchematicNode((symbol, linked_nodes[0], linked_nodes[1]))
+                            if linked_node.name not in self.seen_nodes:
+                                linked_nodes = [linked_node]
+                                self.__record_link(head, SchematicEdge(state), linked_nodes)
+                                all_linked_ports.extend(linked_nodes)
             else:
-                self.logger.debug('DNI: symbol %s', symbol)
+                self.logger.debug('__heads_to_tails: DNI symbol %s', symbol)
 
         return all_linked_ports
 
@@ -157,9 +178,9 @@ class Explorer(SourceReader, SpecialSymbols):
         nodes = [SchematicNode((symbol, x, y)) for x, y in lst if x == pin or y == pin]
 
         if len(nodes) > 1:
-            self.logger.warn('multiple nodes found on %s with pin = %s', symbol, pin)
+            self.logger.warn('get_nodes_with_pin: multiple nodes found on %s with pin = %s', symbol, pin)
         if len(nodes) == 0:
-            self.logger.error('zero nodes found on %s with pin = %s', symbol, pin)
+            self.logger.error('get_nodes_with_pin: zero nodes found on %s with pin = %s', symbol, pin)
             raise ValueError
 
         return nodes

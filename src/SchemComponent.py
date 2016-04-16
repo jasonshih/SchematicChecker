@@ -39,6 +39,7 @@ class SchematicComponent:
 
     component_links = {}
     known_comp_types = []
+    unknown_comp_types = set()
 
     def __init__(self, comp_type=None):
         pin_pat = re.compile('\((\w+)[,\s]+(\w+)\)')
@@ -46,6 +47,7 @@ class SchematicComponent:
         self.type = ''
         self.links = defaultdict(dict)
         self.pins = {}
+        self.unknown_links = False
 
         if not self.component_links:
             self.logger.info('importing component link database')
@@ -53,7 +55,6 @@ class SchematicComponent:
             self.get_known_comp_types()
 
         if comp_type in self.known_comp_types:
-
             self.logger.debug('known comp_type: %s' % comp_type)
             x = self.component_links['records']
             for c in x:
@@ -79,17 +80,18 @@ class SchematicComponent:
                             ('00', 'plane'): None
                         })
         else:
-            self.logger.warn('unknown comp_type: %s' % comp_type)
+            if comp_type not in self.unknown_comp_types:
+                self.logger.warn('unknown comp_type: %s' % comp_type)
+                self.unknown_comp_types.add(comp_type)
+                self.unknown_links = True
 
     @classmethod
     def import_standard_link(cls, input_json='../config/component_links.json'):
-
         with open(input_json, encoding='utf-8') as json_file:
             cls.component_links = json.loads(json_file.read())
 
     @classmethod
     def get_known_comp_types(cls):
-
         cls.known_comp_types = [y for x in cls.component_links['records'] for y in x['component']]
 
 
@@ -203,6 +205,7 @@ class TesterBoard:
 
 
 class BoardUVI80(TesterBoard):
+
     board_type = 'DC-07'
     ch_type = 'DCVI'
     nets_pattern = re.compile('J(\d+)_UVI80_(\d+)\w*')
@@ -213,6 +216,7 @@ class BoardUVI80(TesterBoard):
 
 
 class BoardUPIN1600(TesterBoard):
+
     board_type = 'HSD'
     ch_type = 'I/O'
     nets_pattern = re.compile('J(\d+)_HSD_(\d+)')
@@ -225,6 +229,7 @@ class BoardUPIN1600(TesterBoard):
 
 
 class BoardDC30(TesterBoard):
+
     board_type = 'DC30'
     ch_type = 'DCVI'
     nets_pattern = re.compile('J(\d+)_DC30_(\d+)')
