@@ -9,8 +9,8 @@ class SpecialSymbols:
 
     def __init__(self):
         self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
-        self.device_symbols = ['X' + str(t) for t in range(16)]
-        self.tester_symbols = ['J' + str(t) for t in range(0, 54, 2)]
+        self.device_symbols = ['X' + str(t) for t in range(2)]  # 16 for 16 sites
+        self.tester_symbols = ['J' + str(t) for t in [4, 6, 8, 10, 12, 18, 20, 22, 0, 14, 16, 2]]
         self.plane_symbols = ['[AGND]', '[+5V]', '[-5V]']
         self.terminal_symbols = ['[WARNING]', '[device]', '[tester]']
 
@@ -55,7 +55,7 @@ class SchematicComponent:
             self.get_known_comp_types()
 
         if comp_type in self.known_comp_types:
-            self.logger.debug('known comp_type: %s' % comp_type)
+            # self.logger.debug('known comp_type: %s' % comp_type)
             x = self.component_links['records']
             for c in x:
                 if comp_type in c['component']:
@@ -124,7 +124,7 @@ class SchematicPath(SpecialSymbols, SpecialNets):
         self.iter_devices = (node for link in links for node in link.nodes if node.symbol in self.device_symbols)
         self.iter_testers = (link.edge for link in links if link.edge.channel)
 
-        self.populate_subset()
+        # self.populate_subset()
 
     def populate_subset(self):
         # az = PathAnalyzer()
@@ -140,29 +140,30 @@ class SchematicPath(SpecialSymbols, SpecialNets):
 class SchematicLink(SpecialSymbols, SpecialNets):
     """consist of (node, node, edge)"""
 
-    def __init__(self, link: tuple):
+    def __init__(self, link_level: tuple):
         SpecialSymbols.__init__(self)
         SpecialNets.__init__(self)
 
-        if len(link) != 3:
+        if len(link_level) != 4:
             raise ValueError
 
-        self.link = link
-        self.tail, self.head, self.edge = link
+        self.link = link_level[0:3]
+        self.tail, self.head, self.edge, self.level = link_level
         self.nodes = [self.tail, self.head]
 
     def __repr__(self):
         return '<link>: ' + ' -- '.join([self.tail.name, self.edge.name, self.head.name])
 
 
-class SchematicNode:
+class SchematicNode(SpecialSymbols):
 
     def __init__(self, symbol_and_pins):
+        SpecialSymbols.__init__(self)
         (self.symbol, self.pin_number, self.pin_name) = symbol_and_pins
         self.tuple = symbol_and_pins
         self.name = '|'.join(symbol_and_pins)
         self.dni = False
-        self.site = 0
+        self.is_device = True if self.symbol in self.device_symbols else False
 
     def __str__(self):
         return self.name
@@ -171,11 +172,13 @@ class SchematicNode:
         return '<node>:' + self.name
 
 
-class SchematicEdge:
+class SchematicEdge(SpecialNets):
 
     def __init__(self, nets):
+        SpecialNets.__init__(self)
         self.name = nets
         self.channel = None
+        self.is_plane = True if nets in self.special_nets else False
 
         board_classes = [BoardDC30, BoardUPIN1600, BoardUVI80]
         for b in board_classes:

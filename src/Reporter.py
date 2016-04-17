@@ -27,11 +27,11 @@ class Reporter:
                 continue
 
             for i, site in enumerate(az.iter_all_device_symbols(oo)):
-                [nut] = oo.get_nodes_with_pin(symbol=site, pin=pin)
-                pw = oo.explore(nut)
+                nut = oo.get_nodes_with_pin(symbol=site, pin=pin)
+                this_path = oo.explore(nut)
                 if i == 0:
-                    az.compile(pw)
-                is_symmetrical = az.is_multi_site_ok(pw)
+                    az.compile(this_path)
+                is_symmetrical = az.is_multi_site_ok(this_path)
 
                 if not is_symmetrical:
                     asymmetrical_list.append((site, pin))
@@ -55,7 +55,8 @@ class Reporter:
                 if cond_1 or cond_2:
                     pass
                 else:
-                    self.logger.warn('pair not found for %s: found postfixes: %s', uvi_group + pre + pos, ', '.join(postfix))
+                    self.logger.warn('force_and_sense_check: pair not found for %s: found postfixes: %s',
+                                     uvi_group + pre + pos, ', '.join(postfix))
                     disconnected.append(uvi_group + pre + pos)
 
         return disconnected
@@ -64,33 +65,52 @@ class Reporter:
         self.logger.info('=== creating channel map ===')
 
         az = PathAnalyzer()
-        cm = defaultdict(list)
+        cm = defaultdict(set)
         cm_lists = []
         for site in az.iter_all_device_symbols(oo):
             for pin in az.iter_all_pins_in_symbol('X0', oo):
 
                 if pin.startswith('CDC'):
-                    # TODO find out why CDC_LO_M and _P are messed up. and VPP too.
+                    # TODO issues on VPP, and loopback circuitry:
+                    # TODO CDC_EAR_M/P, CDC_HPH_L/R, CDC_IN1_M/P, CDC_IN2_P,
+                    # TODO CDC_IN3_P, CDC_LO_M/P, CDC_SPKDRV_M/P
                     continue
 
-                [nut] = oo.get_nodes_with_pin(site, pin)
+                nut = oo.get_nodes_with_pin(site, pin)
                 this_path = oo.explore(nut)
-                terminals = this_path.subset.keys()
+
+                terminals = az.iterset_tester_nets(this_path)
+                if 'AGND' in [x.edge.name for x in this_path.links if x.level == 0]:
+                    terminals.add('AGND')
 
                 if not terminals:
                     self.logger.warn('no tester channel assigned for pin: %s', pin)
-                    cm[(pin, 'N/C')].append('_')
+                    cm[(pin, 'N/C')].add('_')
                 else:
                     for terminal in terminals:
-                        # TODO fix the 0 0 -1 -1 below.
-                        last_link = -1
-                        edge_obj = this_path.subset[terminal][0][last_link].edge
-                        if terminal == 'AGND' and len(terminals) == 1:
-                            cm[(pin, 'GND')].append('_')
-                        elif edge_obj.channel:
-                            cm[(pin, edge_obj.channel.ch_type)].append(edge_obj.channel.ch_map)
+                        if terminal == 'AGND':
+                            cm[(pin, 'GND')].add('_')
+                        elif terminal.channel:
+                            cm[(pin, terminal.channel.ch_type)].add(terminal.channel.ch_map)
                         else:
                             self.logger.debug('terminal.tester_channel is empty at nets: %s', terminal)
+
+                # terminals = this_path.subset.keys()
+                #
+                # if not terminals:
+                #     self.logger.warn('no tester channel assigned for pin: %s', pin)
+                #     cm[(pin, 'N/C')].append('_')
+                # else:
+                #     for terminal in terminals:
+                #         # TODO fix the 0 0 -1 -1 below.
+                #         last_link = -1
+                #         edge_obj = this_path.subset[terminal][0][last_link].edge
+                #         if terminal == 'AGND' and len(terminals) == 1:
+                #             cm[(pin, 'GND')].append('_')
+                #         elif edge_obj.channel:
+                #             cm[(pin, edge_obj.channel.ch_type)].append(edge_obj.channel.ch_map)
+                #         else:
+                #             self.logger.debug('terminal.tester_channel is empty at nets: %s', terminal)
 
         for u, v in cm.items():
             combined = list(u)
@@ -102,15 +122,19 @@ class Reporter:
         return cm_lists
 
     def get_pins_to_nets(self, oo, symbol, nets):
+        # TODO belong to analyzer
         self.logger.info('=== creating list of device pins connected to nets ===')
         return sorted([SchematicNode(x) for x in oo.NETS_DICT[nets] if x[0] in symbol], key=lambda x: x.pin_name)
 
     def get_symbols_to_nets(self, oo, nets):
+        # TODO belong to analyzer
         self.logger.info('=== creating list of symbols connected to nets ===')
         return sorted([SchematicNode(x) for x in oo.NETS_DICT[nets]], key=lambda x: x.symbol)
 
     def get_nets_count(self, oo):
-        return sorted([(x, len(y)) for x, y in oo.NETS_DICT.items()], key=lambda x:x[1], reverse=True)
+        # TODO belong to analyzer
+        self.logger.info('=== get_nets_count ===')
+        return sorted([(x, len(y)) for x, y in oo.NETS_DICT.items()], key=lambda x: x[1], reverse=True)
 
     def create_dni_report(self, oo):
         self.logger.info('=== creating dni report ===')

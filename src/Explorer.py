@@ -64,51 +64,46 @@ class Explorer(SourceReader, SpecialSymbols):
         SpecialSymbols.__init__(self)
         self.seen_nodes = []
         self.explored_links = []
+        self.lvl = 0
 
-    def explore(self, ntail, level=0):
+    def explore(self, tail, level=0):
         # main function call for this class. finding path in this format:
         #     TAIL   -- EDGE -- HEAD
         self.logger.debug('-' * 60)
-        self.logger.debug('exploring: %s, at level %s', ntail.name, level)
+        self.logger.debug('exploring: %s, at level %s', tail.name, level)
 
-        node_tail = ntail.tuple
-        if level == 0:
+        self.lvl = level
+        node_tail = tail.tuple
+        if self.lvl == 0:
             self.__clear_nodes_and_links()
 
         if len(node_tail) != 3:
             raise ValueError
 
-        if ntail.name == 'U15|7|OUT':
-            pass
-
         # PROCESS FOR THIS ITERATION
-        self.seen_nodes.append(ntail.name)
-        edge = self.__tail_to_edge(ntail)
-        nheads = self.__edge_to_heads(edge)
+        self.seen_nodes.append(tail.name)
+        edge = self.__tail_to_edge(tail)
+        heads = self.__edge_to_heads(edge)
         self.logger.debug('exploring: found edge %s', edge.name)
 
         # RECORD LINK
-        self.__record_link(ntail, edge, nheads)
+        self.__record_link(tail, edge, heads)
 
         # PROCESS FOR THE NEXT ITERATION
-        filtered_heads = self.__filter_out_previous_nodes(nheads)  # A, B, C --> A, B
+        filtered_heads = self.__filter_out_previous_nodes(heads)  # A, B, C --> A, B
         raw_next_tails = self.__heads_to_tails(filtered_heads)  # A, B --> C, D, E
         next_tails = self.__filter_out_terminal_nodes(raw_next_tails)
         self.seen_nodes.extend([str(x) for x in next_tails])
 
         # RECURSIVE SEARCH
         if next_tails:
+            self.logger.debug('explored: %s, found link to %s', tail.name, str(next_tails))
             level += 1
-            self.logger.debug('explored: %s, found link to %s', ntail.name, str(next_tails))
-
-            if level > 20:
-                pass
-
             for next_tail in next_tails:
                 self.explore(next_tail, level)
             level -= 1
         else:
-            self.logger.debug('explored: %s, found no more link', ntail.name)
+            self.logger.debug('explored: %s, found no more link', tail.name)
             pass
 
         # TODO consider using partial functools
@@ -134,7 +129,6 @@ class Explorer(SourceReader, SpecialSymbols):
 
             if not self.SYMBOL_DICT[symbol].dni:
                 if str(symbol) in chain(self.device_symbols, self.connector_symbols):
-                    # TERMINAL: device symbol
                     # linked_nodes = [('[device]', '[pmic]', '[tangerine]')]
                     # all_linked_ports.extend(linked_nodes)
                     # self.__record_link(head, 'socket', linked_nodes)
@@ -144,7 +138,6 @@ class Explorer(SourceReader, SpecialSymbols):
                     # internal connections within symbol
                     states = self.SYMBOL_DICT[head.symbol].links.keys()
                     for state in states:
-                        # self.logger.debug('symbol, state: %s, %s' % (symbol, state))
                         linked_nodes = self.SYMBOL_DICT[symbol].links[state][(pin_num, pin_name)]
                         if linked_nodes:
                             # TODO: future improvement to have multiple linked nodes. VERY UGLY.
@@ -164,9 +157,9 @@ class Explorer(SourceReader, SpecialSymbols):
     def __filter_out_previous_nodes(self, heads):
         return [x for x in heads if x.name not in self.seen_nodes]
 
-    def __record_link(self, ntail, edge, nheads):
-        for nhead in nheads:
-            link = SchematicLink((ntail, nhead, edge))
+    def __record_link(self, tail, edge, heads):
+        for head in heads:
+            link = SchematicLink((tail, head, edge, self.lvl))
             self.explored_links.append(link)
 
     def __clear_nodes_and_links(self):
@@ -183,4 +176,4 @@ class Explorer(SourceReader, SpecialSymbols):
             self.logger.error('get_nodes_with_pin: zero nodes found on %s with pin = %s', symbol, pin)
             raise ValueError
 
-        return nodes
+        return nodes[0]

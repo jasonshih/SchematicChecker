@@ -85,7 +85,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         return checks
 
     def get_path_to_nets(self, pathway: SchematicPath, the_nets):
-        self.logger.setLevel(logging.INFO)
+        # self.logger.setLevel(logging.INFO)
         all_nets_in_path = [link.edge.name for link in pathway.links]
         occurrence = all_nets_in_path.count(the_nets)
 
@@ -95,23 +95,25 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         else:
             matches_indexes = (i for i, n in enumerate(all_nets_in_path) if n == the_nets)
             for index in matches_indexes:
-                self.logger.debug('get_path_to_nets: %s, starting index [%s] --', the_nets, index)
+                self.logger.debug('get_path_to_nets: from %s to %s, starting index [%s]',
+                                  pathway.origin.name, the_nets, index)
                 path_to_plane = []
                 z = pathway.links[index].head.name
-                # TODO try reveresed
+                # TODO try reversed
                 for i in range(index, -1, -1):
                     link = pathway.links[i]
                     if link.head.name == z:
-                        self.logger.debug('get_path_to_nets: recording: [%s] %s', i, link)
+                        # self.logger.debug('get_path_to_nets: recording: [%s] %s', i, link)
                         path_to_plane.insert(0, link)
                         z = link.tail.name
                     else:
-                        self.logger.debug('get_path_to_nets: ignoring: [%s] %s', i, link)
+                        # self.logger.debug('get_path_to_nets: ignoring: [%s] %s', i, link)
+                        pass
 
                 self.logger.debug('get_path_to_nets: saving with path length: %s', len(path_to_plane))
                 all_path_to_plane.append(path_to_plane)
 
-        self.logger.setLevel(logging.DEBUG)
+        # self.logger.setLevel(logging.DEBUG)
         return all_path_to_plane
 
     @staticmethod
@@ -130,8 +132,8 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             return re.sub('([a-zA-Z]+[0-9]+)[a-zA-Z]+\|', '\\1#|', match_obj.group(0))
 
     def __mask_symbol_and_nets_identifier(self, pathway: SchematicPath):
-        self.logger.setLevel(logging.INFO)
-        # TODO consider globalizing these.
+        # self.logger.setLevel(logging.INFO)
+        # TODO consider putting these on the edge class.
         pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
         pat_symbol_conn = re.compile('^J\d+([\w|]+)IO\d+', re.I)
         pat_hidden = re.compile('^\$(\w*)')
@@ -158,6 +160,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         for t in outer_list:
             u = t[2].name
 
+            # TODO use edge's attribute instead of this.
             if u in self.special_nets:
                 v = u
             elif pat_hidden.search(u):
@@ -177,15 +180,13 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
                 self.logger.warn('unknown nets type: %s', v)
 
             final_list.append((t[0], t[1], v))
-        self.logger.setLevel(logging.DEBUG)
+        # self.logger.setLevel(logging.DEBUG)
         return final_list
 
-    def get_tester_nets(self, pathway: SchematicPath):
-        self.logger.warn('deprecating get_get_device_symbols, use pathway.subset instead')
-        # TODO consider renaming it to iter_tester_nets_at_path
-        return {link.edge for link in pathway.links if link.edge.tester_board in self.tester_symbols}
+    @staticmethod
+    def iterset_tester_nets(pathway: SchematicPath):
+        return {link.edge for link in pathway.links if link.edge.channel}
 
-    def get_device_symbols(self, pathway: SchematicPath):
-        # TODO consider renaming it to iter_device_symbols_at_path
-        self.logger.warn('deprecating get_get_device_symbols, use pathway.subset instead')
-        return {node for link in pathway.links for node in link.nodes if node.symbol in self.device_symbols}
+    @staticmethod
+    def iterset_device_symbols(pathway: SchematicPath):
+        return {node for link in pathway.links for node in link.nodes if node.is_device}
