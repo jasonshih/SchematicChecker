@@ -152,6 +152,6 @@ class Reporter:
         self.logger.info('=== show component ===')
 
         xx = BlockVisualizer()
-        [nut] = oo.get_nodes_with_pin(symbol=symbol, pin=pin)
+        nut = oo.get_nodes_with_pin(symbol=symbol, pin=pin)
         this_path = oo.explore(nut)
         xx.draw(this_path)

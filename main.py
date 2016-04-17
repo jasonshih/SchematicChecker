@@ -1,6 +1,7 @@
 from src.Explorer import Explorer
 # from src.DrawingBoard import BlockVisualizer
 from src.Reporter import Reporter
+from src.Analyzer import PathAnalyzer
 import logging
 
 if __name__ == "__main__":
@@ -9,9 +10,14 @@ if __name__ == "__main__":
 
     oo = Explorer()
     report = Reporter()
+    az = PathAnalyzer()
 
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     oo.read_xlsx(xlsx_file)
+
+    nut = oo.get_nodes_with_pin('X0', 'VREG_L16')
+    this_path = oo.explore(nut)
+    az.view_everything(this_path)
 
     ms_report = report.multi_site_check(oo)
     [print('ms err: ' + ' at pin: '.join(x)) for x in ms_report]

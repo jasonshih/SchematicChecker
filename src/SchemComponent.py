@@ -119,23 +119,46 @@ class SchematicPath(SpecialSymbols, SpecialNets):
     def __init__(self, links: list, analyzer_obj):
         SpecialSymbols.__init__(self)
         SpecialNets.__init__(self)
-        self.links = links
-        self.origin = links[0].tail
+        self.links = self.__sort_links(links)
+        # self.links = links
+        self.origin = self.links[0].tail
         self.subset = defaultdict(list)
         self.az = analyzer_obj
 
-        self.iter_devices = (node for link in links for node in link.nodes if node.symbol in self.device_symbols)
-        self.iter_testers = (link.edge for link in links if link.edge.channel)
+        self.iter_devices_at_links = {node for link in self.links for node in link.nodes
+                                      if node.symbol in self.device_symbols}
+        self.iter_testers_at_links = {link.edge for link in self.links if link.edge.channel}
 
-        # self.populate_subset()
+        self.iter_active_components = {link for link in self.links if link.tail.is_active and link.is_internal}
+
+    @staticmethod
+    def __sort_links(links):
+        sorted_links = []
+        x = links.pop(0)
+        sorted_links.append(x)
+
+        # links = sorted(links, key=lambda ln: ln.level, reverse=True)
+
+        while links:
+            not_found = True
+            for i, lnk in enumerate(links):
+                if lnk.tail.name == x.head.name:
+                    x = links.pop(i)
+                    sorted_links.append(x)
+                    not_found = False
+                    break
+            if not_found:
+                x = links.pop(0)
+                sorted_links.append(x)
+        return sorted_links
 
     def populate_subset(self):
         # az = PathAnalyzer()
-        for channel in self.iter_testers:
-            self.subset[channel.name].extend(self.az.get_path_to_nets(self, channel.name))
+        for channel in self.iter_testers_at_links:
+            self.subset[channel.name].extend(self.az.create_subset_path(self, channel.name))
 
         for plane in self.special_nets:
-            to_plane = self.az.get_path_to_nets(self, plane)
+            to_plane = self.az.create_subset_path(self, plane)
             if to_plane:
                 self.subset[plane].extend(to_plane)
 
@@ -153,9 +176,13 @@ class SchematicLink(SpecialSymbols, SpecialNets):
         self.items = link_level[0:3]
         self.tail, self.head, self.edge, self.level = link_level
         self.nodes = [self.tail, self.head]
+        self.is_internal = False
 
     def __repr__(self):
         return '<link>: ' + ' -- '.join([self.tail.name, self.edge.name, self.head.name])
+
+    def __str__(self):
+        return ' --> '.join([self.tail.name, self.edge.name, self.head.name])
 
 
 class SchematicNode(SpecialSymbols):
@@ -171,6 +198,7 @@ class SchematicNode(SpecialSymbols):
         self.masked_name = self.name
         self.dni = False
         self.is_device = True if self.symbol in self.device_symbols else False
+        self.is_active = False
 
         # TODO wrap this to another function
         if self.symbol in self.connector_symbols:
@@ -196,8 +224,9 @@ class SchematicEdge(SpecialNets):
 
     pat_hidden = re.compile('^\$(\w*)')
     pat_site = re.compile('^S\d{1,2}(_\w*)', re.I)
-    pat_udb = re.compile('^UDB\d*')
-    pat_uvi = re.compile('J\d{1,2}_UVI80_\d{1,2}(\w*)', re.I)
+    pat_udb = re.compile('^UDB\d+')
+    # TODO consider ^(J\d{1,2}_UVI80_\d{1,2})(\w*)
+    pat_uvi = re.compile('^J\d{1,2}_UVI80_\d{1,2}(\w*)', re.I)
     pat_hsd = re.compile('^J\d{1,2}_HSD_\d{1,3}', re.I)
     pat_common = re.compile('(\w*)\d*$')
 
@@ -216,7 +245,7 @@ class SchematicEdge(SpecialNets):
                 self.channel = b(nets)
                 break
 
-        # TODO wrap this to another function
+        # TODO wrap this to board class or other function
         if nets in self.special_nets:
             self.masked_name = nets
         elif self.pat_hidden.search(nets):
@@ -260,7 +289,8 @@ class BoardUVI80(TesterBoard):
 
     board_type = 'DC-07'
     ch_type = 'DCVI'
-    nets_pattern = re.compile('J(\d+)_UVI80_(\d+)\w*')
+    # TODO consider (J\d{1,2}_UVI80_\d{1,2})(\w*)
+    nets_pattern = re.compile('^J(\d+)_UVI80_(\d+)\w*')
 
     def __init__(self, nets):
         self.channel_prefix = '.sense'
@@ -271,7 +301,7 @@ class BoardUPIN1600(TesterBoard):
 
     board_type = 'HSD'
     ch_type = 'I/O'
-    nets_pattern = re.compile('J(\d+)_HSD_(\d+)')
+    nets_pattern = re.compile('^J(\d+)_HSD_(\d+)')
 
     def __init__(self, nets):
         self.channel_prefix = '.ch'
@@ -284,8 +314,19 @@ class BoardDC30(TesterBoard):
 
     board_type = 'DC30'
     ch_type = 'DCVI'
-    nets_pattern = re.compile('J(\d+)_DC30_(\d+)')
+    nets_pattern = re.compile('^J(\d+)_DC30_(\d+)')
 
     def __init__(self, nets):
         self.channel_prefix = '.sense'
+        TesterBoard.__init__(self, nets, self.channel_prefix)
+
+
+class BoardUtility(TesterBoard):
+
+    board_type = 'Utility'
+    ch_type = 'Utility'
+    nets_pattern = re.compile('^UDB(\d+)')
+
+    def __init__(self, nets):
+        self.channel_prefix = '.util'
         TesterBoard.__init__(self, nets, self.channel_prefix)

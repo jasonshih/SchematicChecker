@@ -2,7 +2,6 @@
 # import logging
 from src.SchemComponent import *
 from collections import defaultdict
-from itertools import chain
 
 
 class DebugLog:
@@ -69,10 +68,11 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
                     self.logger.debug('no match found: [%s] %s', i, p)
             return False
 
-    def get_uvi_force_sense(self, oo):
+    @staticmethod
+    def get_uvi_force_sense(oo):
         nets_dict = oo.NETS_DICT
         pat_uvi = re.compile('(J\d{1,2}_UVI80_\d{1,2})(\w*)', re.I)
-        tester_resources = [n for n in nets_dict if n.split('_')[0] in self.tester_symbols]
+        tester_resources = [n for n in nets_dict if SchematicEdge(n).channel]
         uvi_resources = sorted([n for n in tester_resources if pat_uvi.match(n)])
 
         checks = defaultdict(list)
@@ -81,18 +81,18 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             checks[mo.group(1)].append(mo.group(2))
         return checks
 
-    def get_path_to_nets(self, pathway: SchematicPath, the_nets):
+    def create_subset_path(self, pathway: SchematicPath, the_nets):
         # self.logger.setLevel(logging.INFO)
         all_nets_in_path = [link.edge.name for link in pathway.links]
         occurrence = all_nets_in_path.count(the_nets)
 
         all_path_to_plane = []
         if occurrence == 0:
-            self.logger.debug('get_path_to_nets: No path from %s to %s', pathway.origin.name, the_nets)
+            self.logger.debug('create_subset_path: No path from %s to %s', pathway.origin.name, the_nets)
         else:
             matches_indexes = (i for i, n in enumerate(all_nets_in_path) if n == the_nets)
             for index in matches_indexes:
-                self.logger.debug('get_path_to_nets: from %s to %s, starting index [%s]',
+                self.logger.debug('create_subset_path: from %s to %s, starting index [%s]',
                                   pathway.origin.name, the_nets, index)
                 path_to_plane = []
                 z = pathway.links[index].head.name
@@ -100,15 +100,15 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
                 for i in range(index, -1, -1):
                     link = pathway.links[i]
                     if link.head.name == z:
-                        # self.logger.debug('get_path_to_nets: recording: [%s] %s', i, link)
+                        # self.logger.debug('create_subset_path: recording: [%s] %s', i, link)
                         path_to_plane.insert(0, link)
                         z = link.tail.name
                     else:
-                        # self.logger.debug('get_path_to_nets: ignoring: [%s] %s', i, link)
+                        # self.logger.debug('create_subset_path: ignoring: [%s] %s', i, link)
                         pass
 
-                self.logger.debug('get_path_to_nets: saving with path length: %s', len(path_to_plane))
-                all_path_to_plane.append(path_to_plane)
+                self.logger.debug('create_subset_path: saving with path length: %s', len(path_to_plane))
+                all_path_to_plane.append(SchematicPath(path_to_plane, PathAnalyzer()))
 
         # self.logger.setLevel(logging.DEBUG)
         return all_path_to_plane
@@ -136,3 +136,36 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
     @staticmethod
     def iterset_device_symbols(pathway: SchematicPath):
         return {node for link in pathway.links for node in link.nodes if node.is_device}
+
+    def view_everything(self, pathway: SchematicPath):
+
+        print('links')
+        print('=' * 80)
+        for i, link in enumerate(pathway.links):
+            out_str = '[{num:03d}] '.format(num=i) + ' .. ' * link.level + str(link)
+            print(out_str)
+        print('\v\v')
+
+        print('origin')
+        print('=' * 40)
+        print(pathway.origin.name)
+        print('\v\v')
+
+        print('devices')
+        print('=' * 40)
+        [print(x.name) for x in pathway.iter_devices_at_links]
+        print('\v\v')
+
+        print('channels')
+        print('=' * 40)
+        testers = [x.name for x in pathway.iter_testers_at_links]
+        [print(t) for t in testers]
+        print('\v\v')
+
+        for tester in testers:
+            subsets = self.create_subset_path(pathway, tester)
+
+            for subset in subsets:
+                print('relays to: %s' % tester)
+                [print(k) for k in subset.iter_active_components]
+                print('\v\v')

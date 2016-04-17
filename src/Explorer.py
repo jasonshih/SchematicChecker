@@ -87,9 +87,10 @@ class Explorer(SourceReader, SpecialSymbols):
         self.logger.debug('exploring: found edge %s', edge.name)
 
         # RECORD LINK
-        self.__record_link(tail, edge, heads)
+        self.__record_link(tail, edge, heads, self.lvl)
 
         # PROCESS FOR THE NEXT ITERATION
+        # self.lvl += 1
         filtered_heads = self.__filter_out_previous_nodes(heads)  # A, B, C --> A, B
         raw_next_tails = self.__heads_to_tails(filtered_heads)  # A, B --> C, D, E
         next_tails = self.__filter_out_terminal_nodes(raw_next_tails)
@@ -98,16 +99,27 @@ class Explorer(SourceReader, SpecialSymbols):
         # RECURSIVE SEARCH
         if next_tails:
             self.logger.debug('explored: %s, found link to %s', tail.name, str(next_tails))
-            level += 1
+            self.lvl += 2
             for next_tail in next_tails:
-                self.explore(next_tail, level)
-            level -= 1
+                # self.__reshuffle_links(next_tail.name)
+                self.explore(next_tail, self.lvl)
+            self.lvl -= 2
         else:
             self.logger.debug('explored: %s, found no more link', tail.name)
             pass
 
         # TODO consider using partial functools
-        return SchematicPath(self.explored_links, PathAnalyzer())
+        if self.lvl == 0:
+            return SchematicPath(self.explored_links, PathAnalyzer())
+
+    def __reshuffle_links(self, tail_name):
+        for i, lnk in enumerate(self.explored_links):
+            if lnk.head.name == tail_name:
+                self.logger.debug('reshuffle: found %s' % str(lnk))
+                self.logger.debug('reshuffle: from %s to %s' % (str(i), str(len(self.explored_links))))
+                leading_link = self.explored_links.pop(i)
+                self.explored_links.append(leading_link)
+                break
 
     def __tail_to_edge(self, tail):
         (t, u, v) = tail.tuple
@@ -144,7 +156,9 @@ class Explorer(SourceReader, SpecialSymbols):
                             linked_node = SchematicNode((symbol, linked_nodes[0], linked_nodes[1]))
                             if linked_node.name not in self.seen_nodes:
                                 linked_nodes = [linked_node]
-                                self.__record_link(head, SchematicEdge(state), linked_nodes)
+                                # self.__reshuffle_links(head.name)
+                                self.__record_link(head, SchematicEdge(state), linked_nodes,
+                                                   self.lvl + 1, internal_link=True)
                                 all_linked_ports.extend(linked_nodes)
             else:
                 self.logger.debug('__heads_to_tails: DNI symbol %s', symbol)
@@ -157,9 +171,12 @@ class Explorer(SourceReader, SpecialSymbols):
     def __filter_out_previous_nodes(self, heads):
         return [x for x in heads if x.name not in self.seen_nodes]
 
-    def __record_link(self, tail, edge, heads):
+    def __record_link(self, tail, edge, heads, lvl, internal_link=False):
         for head in heads:
-            link = SchematicLink((tail, head, edge, self.lvl))
+            link = SchematicLink((tail, head, edge, lvl))
+            link.tail.is_active = True if self.SYMBOL_DICT[tail.symbol].is_active else False
+            link.head.is_active = True if self.SYMBOL_DICT[head.symbol].is_active else False
+            link.is_internal = internal_link
             self.explored_links.append(link)
 
     def __clear_nodes_and_links(self):
