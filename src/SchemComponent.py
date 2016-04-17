@@ -11,8 +11,8 @@ class SpecialSymbols:
         self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
         self.device_symbols = ['X' + str(t) for t in range(2)]  # 16 for 16 sites
         self.tester_symbols = ['J' + str(t) for t in [4, 6, 8, 10, 12, 18, 20, 22, 0, 14, 16, 2]]
-        self.plane_symbols = ['[AGND]', '[+5V]', '[-5V]']
-        self.terminal_symbols = ['[WARNING]', '[device]', '[tester]']
+        self.plane_symbols = ['[AGND]', '[+5V]', '[-5V]', '[P5V]', '[N5V]', '[P15V]', '[N15V]', '[+5V_RLY]']
+        self.terminal_symbols = ['[WARNING]']  # '[device]', '[tester]'
 
         # self.uvi80 = [BoardUVI80(str(x)) for x in [4, 6, 8, 10, 12, 18, 20, 22]]
         # self.upin1600 = [BoardUPIN1600(str(x)) for x in [0, 14, 16]]
@@ -48,6 +48,7 @@ class SchematicComponent:
         self.links = defaultdict(dict)
         self.pins = {}
         self.unknown_links = False
+        self.is_active = False
 
         if not self.component_links:
             self.logger.info('importing component link database')
@@ -59,6 +60,9 @@ class SchematicComponent:
             x = self.component_links['records']
             for c in x:
                 if comp_type in c['component']:
+                    if c['active']:
+                        self.is_active = True
+
                     for state, links in c['links'].items():
                         for m, n in links.items():
                             pin_num = pin_pat.match(m).group(1)
@@ -104,7 +108,6 @@ class SchematicSymbol(SchematicComponent):
         self.id = ''
         self.state = []
         self.dni = False
-        self.active = False
 
     def __repr__(self):
         return '<symbol> ' + self.id

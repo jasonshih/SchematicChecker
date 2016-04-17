@@ -4,7 +4,7 @@ from src.Reporter import Reporter
 import logging
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
     oo = Explorer()
@@ -14,21 +14,39 @@ if __name__ == "__main__":
     oo.read_xlsx(xlsx_file)
 
     ms_report = report.multi_site_check(oo)
-    [print(' at pin: '.join(x)) for x in ms_report]
+    [print('ms err: ' + ' at pin: '.join(x)) for x in ms_report]
+    print('\v')
 
     cm_report = report.create_channel_map(oo)
-    [print(', '.join(x)) for x in cm_report]
+    [print('cm: ' + ', '.join(x)) for x in cm_report]
+    print('\v')
 
     agnd_report = report.get_pins_to_nets(oo, symbol=['X0'], nets='AGND')
-    [print(x.name) for x in agnd_report]
+    [print('to agnd: ' + x.name) for x in agnd_report]
+    print('\v')
 
     p5v_report = report.get_symbols_to_nets(oo, 'P5V')
-    [print(x.name) for x in p5v_report]
+    [print('active comp to p5v: ' + x.name) for x in p5v_report if oo.SYMBOL_DICT[x.symbol].is_active]
+    print('\v')
+
+    n5v_report = report.get_symbols_to_nets(oo, 'N5V')
+    [print('active comp to n5v: ' + x.name) for x in n5v_report if oo.SYMBOL_DICT[x.symbol].is_active]
+    print('\v')
+
+    p5v_rly_report = report.get_symbols_to_nets(oo, '+5V_RLY')
+    [print('active comp to p5v_rly: ' + x.name) for x in p5v_rly_report if oo.SYMBOL_DICT[x.symbol].is_active]
+    print('\v')
+
+    unconnected_report = report.get_symbols_to_nets(oo, 'unconnected')
+    [print('unconnected : ' + x.name) for x in unconnected_report if x.symbol not in oo.connector_symbols]
+    print('\v')
 
     fs_report = report.force_and_sense_check(oo)
-    [print(x) for x in fs_report]
+    [print('unpaired ' + x) for x in fs_report]
+    print('\v')
 
     dni_report = report.create_dni_report(oo)
-    [print(x + ' at nets: ' + ', '.join(sorted(y))) for x, y in sorted(dni_report.items())]
+    [print('DNI ' + x + ' at nets: ' + ', '.join(sorted(y))) for x, y in sorted(dni_report.items())]
+    print('\v')
 
     # report.show_component(oo, 'X0', 'VREG_L3')
