@@ -4,7 +4,7 @@ from src.Reporter import Reporter
 import logging
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.ERROR)     # DEBUG INFO WARN ERROR
     logger = logging.getLogger(__name__)
 
     oo = Explorer()

@@ -9,7 +9,7 @@ class SpecialSymbols:
 
     def __init__(self):
         self.connector_symbols = ['J' + str(t) for t in range(1, 33)]
-        self.device_symbols = ['X' + str(t) for t in range(2)]  # 16 for 16 sites
+        self.device_symbols = ['X' + str(t) for t in range(16)]  # 16 for 16 sites
         self.tester_symbols = ['J' + str(t) for t in [4, 6, 8, 10, 12, 18, 20, 22, 0, 14, 16, 2]]
         self.plane_symbols = ['[AGND]', '[+5V]', '[-5V]', '[P5V]', '[N5V]', '[P15V]', '[N15V]', '[+5V_RLY]']
         self.terminal_symbols = ['[WARNING]']  # '[device]', '[tester]'
@@ -150,7 +150,7 @@ class SchematicLink(SpecialSymbols, SpecialNets):
         if len(link_level) != 4:
             raise ValueError
 
-        self.link = link_level[0:3]
+        self.items = link_level[0:3]
         self.tail, self.head, self.edge, self.level = link_level
         self.nodes = [self.tail, self.head]
 
@@ -160,13 +160,30 @@ class SchematicLink(SpecialSymbols, SpecialNets):
 
 class SchematicNode(SpecialSymbols):
 
+    pat_symbol = re.compile('^([A-Z])+\d+[A-Z]?\|', re.I)
+    pat_symbol_conn = re.compile('^J\d+([\w|]+)IO\d+', re.I)
+
     def __init__(self, symbol_and_pins):
         SpecialSymbols.__init__(self)
         (self.symbol, self.pin_number, self.pin_name) = symbol_and_pins
         self.tuple = symbol_and_pins
         self.name = '|'.join(symbol_and_pins)
+        self.masked_name = self.name
         self.dni = False
         self.is_device = True if self.symbol in self.device_symbols else False
+
+        # TODO wrap this to another function
+        if self.symbol in self.connector_symbols:
+            self.masked_name = self.pat_symbol_conn.sub('J##|##|IO##', self.name)
+        else:
+            self.masked_name = self.pat_symbol.sub(self.__replace_last_symbol_char, self.name)
+
+    @staticmethod
+    def __replace_last_symbol_char(match_obj):
+        if re.search('[a-z]+[0-9]+\|', match_obj.group(0), re.I):
+            return re.sub('([a-zA-Z]+)[0-9]+\|', '\\1##|', match_obj.group(0))
+        else:
+            return re.sub('([a-zA-Z]+[0-9]+)[a-zA-Z]+\|', '\\1#|', match_obj.group(0))
 
     def __str__(self):
         return self.name
@@ -177,17 +194,46 @@ class SchematicNode(SpecialSymbols):
 
 class SchematicEdge(SpecialNets):
 
+    pat_hidden = re.compile('^\$(\w*)')
+    pat_site = re.compile('^S\d{1,2}(_\w*)', re.I)
+    pat_udb = re.compile('^UDB\d*')
+    pat_uvi = re.compile('J\d{1,2}_UVI80_\d{1,2}(\w*)', re.I)
+    pat_hsd = re.compile('^J\d{1,2}_HSD_\d{1,3}', re.I)
+    pat_common = re.compile('(\w*)\d*$')
+
     def __init__(self, nets):
+        self.logger = logging.getLogger(__name__)
         SpecialNets.__init__(self)
         self.name = nets
+        self.masked_name = nets
         self.channel = None
         self.is_plane = True if nets in self.special_nets else False
 
+        # TODO wrap this to another function
         board_classes = [BoardDC30, BoardUPIN1600, BoardUVI80]
         for b in board_classes:
             if b.is_this(nets):
                 self.channel = b(nets)
                 break
+
+        # TODO wrap this to another function
+        if nets in self.special_nets:
+            self.masked_name = nets
+        elif self.pat_hidden.search(nets):
+            self.masked_name = self.pat_hidden.sub(r'hidden', nets)
+        elif self.pat_site.search(nets):
+            self.masked_name = self.pat_site.sub(r'S##\1', nets)
+        elif self.pat_udb.search(nets):
+            self.masked_name = self.pat_udb.sub(r'UDB##', nets)
+        elif self.pat_uvi.search(nets):
+            self.masked_name = self.pat_uvi.sub(r'J##_UVI80_##\1', nets)
+        elif self.pat_hsd.search(nets):
+            self.masked_name = self.pat_hsd.sub(r'J##_HSD_###', nets)
+        elif self.pat_common.search(nets):
+            self.masked_name = self.pat_common.sub(r'\1', nets)
+        else:
+            self.masked_name = nets
+            self.logger.warn('unknown nets type: %s', nets)
 
     def __str__(self):
         return self.name
