@@ -151,21 +151,26 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         print(pathway.origin.name)
         print('\v\v')
 
-        print('devices')
+        print('device pins')
         print('=' * 40)
         [print(x.name) for x in pathway.iter_devices_at_links]
         print('\v\v')
 
-        print('channels')
+        print('channel assignments')
         print('=' * 40)
-        testers = [x.name for x in pathway.iter_testers_at_links]
+        testers = set([x.name for x in pathway.iter_testers_at_links])
         [print(t) for t in testers]
         print('\v\v')
 
         for tester in testers:
             subsets = self.create_subset_path(pathway, tester)
 
+            relay_set = set()
             for subset in subsets:
+                for k in subset.iter_active_components:
+                    relay_set.add(k)
+
+            if relay_set:
                 print('relays to: %s' % tester)
-                [print(k) for k in subset.iter_active_components]
+                [print(k) for k in relay_set]
                 print('\v\v')

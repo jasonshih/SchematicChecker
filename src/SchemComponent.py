@@ -133,23 +133,29 @@ class SchematicPath(SpecialSymbols, SpecialNets):
 
     @staticmethod
     def __sort_links(links):
+        head_record = []
         sorted_links = []
         x = links.pop(0)
         sorted_links.append(x)
-
-        # links = sorted(links, key=lambda ln: ln.level, reverse=True)
-
+        head_record.append(x.head.name)
         while links:
             not_found = True
             for i, lnk in enumerate(links):
                 if lnk.tail.name == x.head.name:
                     x = links.pop(i)
                     sorted_links.append(x)
+                    head_record.append(x.head.name)
                     not_found = False
+                    break
+            for i, lnk in reversed(list(enumerate(links))):
+                if lnk.tail.name in head_record:
+                    y = links.pop(i)
+                    links.insert(0, y)
                     break
             if not_found:
                 x = links.pop(0)
                 sorted_links.append(x)
+                head_record.append(x.head.name)
         return sorted_links
 
     def populate_subset(self):
@@ -182,7 +188,8 @@ class SchematicLink(SpecialSymbols, SpecialNets):
         return '<link>: ' + ' -- '.join([self.tail.name, self.edge.name, self.head.name])
 
     def __str__(self):
-        return ' --> '.join([self.tail.name, self.edge.name, self.head.name])
+        star = ' *' if self.head.is_terminal else ''
+        return ' --> '.join([self.tail.name, self.edge.name, self.head.name]) + star
 
 
 class SchematicNode(SpecialSymbols):
@@ -199,6 +206,8 @@ class SchematicNode(SpecialSymbols):
         self.dni = False
         self.is_device = True if self.symbol in self.device_symbols else False
         self.is_active = False
+        self.is_origin = False
+        self.is_terminal = False
 
         # TODO wrap this to another function
         if self.symbol in self.connector_symbols:

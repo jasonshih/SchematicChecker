@@ -76,6 +76,7 @@ class Explorer(SourceReader, SpecialSymbols):
         node_tail = tail.tuple
         if self.lvl == 0:
             self.__clear_nodes_and_links()
+            tail.is_origin = True
 
         if len(node_tail) != 3:
             raise ValueError
@@ -140,13 +141,7 @@ class Explorer(SourceReader, SpecialSymbols):
             (symbol, pin_num, pin_name) = head.tuple
 
             if not self.SYMBOL_DICT[symbol].dni:
-                if str(symbol) in chain(self.device_symbols, self.connector_symbols):
-                    # linked_nodes = [('[device]', '[pmic]', '[tangerine]')]
-                    # all_linked_ports.extend(linked_nodes)
-                    # self.__record_link(head, 'socket', linked_nodes)
-                    pass
-
-                else:
+                if self.SYMBOL_DICT[head.symbol].links:
                     # internal connections within symbol
                     states = self.SYMBOL_DICT[head.symbol].links.keys()
                     for state in states:
@@ -160,13 +155,19 @@ class Explorer(SourceReader, SpecialSymbols):
                                 self.__record_link(head, SchematicEdge(state), linked_nodes,
                                                    self.lvl + 1, internal_link=True)
                                 all_linked_ports.extend(linked_nodes)
+                else:
+                    for lnk in reversed(self.explored_links):
+                        if lnk.head.name == head.name:
+                            lnk.head.is_terminal = True
+                            break
             else:
+                # TODO: also should set is_terminal = True
                 self.logger.debug('__heads_to_tails: DNI symbol %s', symbol)
 
         return all_linked_ports
 
     def __filter_out_terminal_nodes(self, heads):
-        return [x for x in heads if x.symbol not in self.terminal_symbols]
+        return [head for head in heads if head.symbol not in self.terminal_symbols]
 
     def __filter_out_previous_nodes(self, heads):
         return [x for x in heads if x.name not in self.seen_nodes]
