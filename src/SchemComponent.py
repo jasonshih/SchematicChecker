@@ -12,7 +12,7 @@ class SpecialSymbols:
         self.device_symbols = ['X' + str(t) for t in range(16)]  # 16 for 16 sites
         self.tester_symbols = ['J' + str(t) for t in [4, 6, 8, 10, 12, 18, 20, 22, 0, 14, 16, 2]]
         self.plane_symbols = ['[AGND]', '[+5V]', '[-5V]', '[P5V]', '[N5V]', '[P15V]', '[N15V]', '[+5V_RLY]']
-        self.terminal_symbols = ['[WARNING]']  # '[device]', '[tester]'
+        self.terminal_symbols = ['[WARNING]', '[OTHER_SITES]']  # '[device]', '[tester]'
 
         # self.uvi80 = [BoardUVI80(str(x)) for x in [4, 6, 8, 10, 12, 18, 20, 22]]
         # self.upin1600 = [BoardUPIN1600(str(x)) for x in [0, 14, 16]]
@@ -31,7 +31,11 @@ class SpecialNets:
             'N5V': [('[N5V]', '00', 'plane')],
             'P15V': [('[P15V]', '00', 'plane')],
             'N15V': [('[N15V]', '00', 'plane')],
-            'unconnected': [('[WARNING]', '00', 'terminal')]
+            'unconnected': [('[WARNING]', '00', 'terminal')],
+            'J2_DC30_10F': [('[OTHER_SITES]', '00', 'terminal')],
+            'J2_DC30_10S': [('[OTHER_SITES]', '00', 'terminal')],
+            'J2_DC30_15F': [('[OTHER_SITES]', '00', 'terminal')],
+            'J2_DC30_15S': [('[OTHER_SITES]', '00', 'terminal')]
         }
 
 

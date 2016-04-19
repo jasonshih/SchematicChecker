@@ -86,6 +86,7 @@ class Explorer(SourceReader, SpecialSymbols):
         edge = self.__tail_to_edge(tail)
         heads = self.__edge_to_heads(edge)
         self.logger.debug('exploring: found edge %s', edge.name)
+        self.logger.debug('exploring: found heads %s', str(heads))
 
         # RECORD LINK
         self.__record_link(tail, edge, heads, self.lvl)
@@ -131,7 +132,7 @@ class Explorer(SourceReader, SpecialSymbols):
         if edge.name in ['unconnected']:
             return [SchematicNode(x) for x in all_edges if '[WARNING]' in x]
         elif edge.name in self.special_nets:
-            return [SchematicNode(x) for x in all_edges if '[' + edge.name + ']' in x]
+            return [SchematicNode(x) for x in all_edges if x[0].startswith('[')]
         else:
             return [SchematicNode(x) for x in all_edges if SchematicNode(x).name not in self.seen_nodes]
 
