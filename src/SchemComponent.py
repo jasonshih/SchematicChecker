@@ -3,6 +3,23 @@ import re
 import json
 
 from collections import defaultdict
+from functools import wraps
+
+
+class LOG:
+
+    def debug_lvl(lvl=logging.DEBUG):
+        """example: @LOG.debug_lvl('DEBUG')"""
+        def enable(f):
+            @wraps(f)
+            def wrapper(slf, *args, **kwargs):
+                prev, next = slf.logger.getEffectiveLevel(), lvl
+                slf.logger.setLevel(next)
+                y = f(slf, *args, **kwargs)
+                slf.logger.setLevel(prev)
+                return y
+            return wrapper
+        return enable
 
 
 class SpecialSymbols:

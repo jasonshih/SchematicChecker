@@ -4,17 +4,6 @@ from src.SchemComponent import *
 from collections import defaultdict
 
 
-class DebugLog:
-
-    def __init__(self, func):
-        self.func = func
-
-    def __call__(self, *args, **kwargs):
-        print('start dec')
-        self.func(self, *args, **kwargs)
-        print('end dec')
-
-
 class PathAnalyzer(SpecialSymbols, SpecialNets):
 
     def __init__(self):

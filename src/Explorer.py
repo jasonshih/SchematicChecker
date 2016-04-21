@@ -195,6 +195,7 @@ class Explorer(SourceReader, SpecialSymbols):
             self.logger.error('get_nodes_with_pin: zero nodes found on %s with pin = %s', symbol, pin)
             raise ValueError
 
+        self.logger.debug('get_nodes_with_pin: %s' % str(nodes))
         return nodes[0]
 
     def get_nodes_with_nets(self, nets):
