@@ -137,7 +137,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
     def iterset_device_symbols(pathway: SchematicPath):
         return {node for link in pathway.links for node in link.nodes if node.is_device}
 
-    def view_everything(self, pathway: SchematicPath):
+    def view_everything(self, pathway: SchematicPath, just_links=False):
 
         print('links')
         print('=' * 80)
@@ -146,31 +146,32 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             print(out_str)
         print('\v\v')
 
-        print('origin')
-        print('=' * 40)
-        print(pathway.origin.name)
-        print('\v\v')
+        if not just_links:
+            print('origin')
+            print('=' * 40)
+            print(pathway.origin.name)
+            print('\v\v')
 
-        print('device pins')
-        print('=' * 40)
-        [print(x.name) for x in pathway.iter_devices_at_links]
-        print('\v\v')
+            print('device pins')
+            print('=' * 40)
+            [print(x.name) for x in pathway.iter_devices_at_links]
+            print('\v\v')
 
-        print('channel assignments')
-        print('=' * 40)
-        testers = set([x.name for x in pathway.iter_testers_at_links])
-        [print(t) for t in testers]
-        print('\v\v')
+            print('channel assignments')
+            print('=' * 40)
+            testers = set([x.name for x in pathway.iter_testers_at_links])
+            [print(t) for t in testers]
+            print('\v\v')
 
-        for tester in testers:
-            subsets = self.create_subset_path(pathway, tester)
+            for tester in testers:
+                subsets = self.create_subset_path(pathway, tester)
 
-            relay_set = set()
-            for subset in subsets:
-                for k in subset.iter_active_components:
-                    relay_set.add(k)
+                relay_set = set()
+                for subset in subsets:
+                    for k in subset.iter_active_components:
+                        relay_set.add(k)
 
-            if relay_set:
-                print('relays to: %s' % tester)
-                [print(k) for k in relay_set]
-                print('\v\v')
+                if relay_set:
+                    print('relays to: %s' % tester)
+                    [print(k) for k in relay_set]
+                    print('\v\v')

@@ -22,9 +22,9 @@ class Reporter:
 
         for pin in az.iter_all_pins_in_symbol('X0', oo):
 
-            if pin.startswith('CDC'):
-                # TODO find out why CDC pins are all showing mismatched
-                continue
+            # if pin.startswith('CDC'):
+            #     # TODO find out why CDC pins are all showing mismatched
+            #     continue
 
             for i, site in enumerate(az.iter_all_device_symbols(oo)):
                 nut = oo.get_nodes_with_pin(symbol=site, pin=pin)
@@ -147,6 +147,17 @@ class Reporter:
             for pin, nets in symbol.pins.items():
                 dni_dict[symbol.id].append(nets)
         return dni_dict
+
+    def create_dgs_report(self, oo):
+        self.logger.info('=== creating DGS report ===')
+        az = PathAnalyzer()
+        many_nets = oo.get_nets_which_contain('DGS')
+        for this_nets in many_nets:
+            nuts_from_edge = oo.get_nodes_with_nets(this_nets)
+            nuts_from_edge = [x for x in nuts_from_edge if x.symbol in oo.connector_symbols]
+            for nut in nuts_from_edge:
+                this_path = oo.explore(nut)
+                az.view_everything(this_path, just_links=True)
 
     def show_component(self, oo, symbol, pin):
         self.logger.info('=== show component ===')

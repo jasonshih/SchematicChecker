@@ -5,7 +5,7 @@ from src.Analyzer import PathAnalyzer
 import logging
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)     # DEBUG INFO WARN ERROR
+    logging.basicConfig(level=logging.INFO)     # DEBUG INFO WARN ERROR
     logger = logging.getLogger(__name__)
 
     oo = Explorer()
@@ -15,9 +15,11 @@ if __name__ == "__main__":
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     oo.read_xlsx(xlsx_file)
 
-    nut = oo.get_nodes_with_pin('X0', 'CDC_LO_P')
+    nut = oo.get_nodes_with_pin('X0', 'CDC_IN1_P')
     this_path = oo.explore(nut)
     az.view_everything(this_path)
+
+    report.create_dgs_report(oo)
 
     # ms_report = report.multi_site_check(oo)
     # [print('ms err: ' + ' at pin: '.join(x)) for x in ms_report]

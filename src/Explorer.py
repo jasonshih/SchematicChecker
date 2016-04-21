@@ -196,3 +196,10 @@ class Explorer(SourceReader, SpecialSymbols):
             raise ValueError
 
         return nodes[0]
+
+    def get_nodes_with_nets(self, nets):
+        lst = self.NETS_DICT[nets]
+        return [SchematicNode(x) for x in lst]
+
+    def get_nets_which_contain(self, text):
+        return sorted([x for x in self.NETS_DICT if text in x])
