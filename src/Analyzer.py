@@ -126,6 +126,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
     def iterset_device_symbols(pathway: SchematicPath):
         return {node for link in pathway.links for node in link.nodes if node.is_device}
 
+    @LOG.debug_lvl(logging.ERROR)
     def view_everything(self, pathway: SchematicPath, just_links=False):
 
         print('links')
@@ -164,3 +165,96 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
                     print('relays to: %s' % tester)
                     [print(k) for k in relay_set]
                     print('\v\v')
+
+    @LOG.debug_lvl()
+    def tree(self, pathway: SchematicPath):
+
+        def read_nested(d: dict, key):
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    read_nested(v, key)
+                else:
+                    pass
+
+                if k == key:
+                    print('{0}: {1}'.format(k, v))
+
+        def set_nested(d: dict, key, val, root=True, found=False):
+
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    found = set_nested(v, key, val, root=False, found=found)
+                else:
+                    pass
+
+                if k == key:
+                    d[key].update({val: None})
+                    found = True
+
+            if root:
+                if not found:
+                    d.update({val: None})
+                return d
+            else:
+                return found
+
+
+        'TAIL -- HEAD'
+
+        backtrack = defaultdict(list)
+        dc = {
+              "K1A [COM1]": {
+                "K1A [S1]": {
+                  "J6 [IO67]": None
+                },
+                "K1A [S2]": {
+                  "R121A [NEG]": {
+                    "R121A [POS]": {
+                      "K92 [S1]": {
+                        "K92 [COM1]": {
+                          "J6 [IO7]": None,
+                          "JP601 [IO2]": {
+                            "JP601 [IO1]": {
+                              "J6 [IO17]": None
+                            }
+                          },
+                          "J6 [IO8]": None
+                        }
+                      },
+                      "K92 [S3]": {
+                        "K92 [COM2]": {
+                          "J6 [IO7]": None,
+                          "JP601 [IO2]": None,
+                          "J6 [IO8]": None
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        read_nested(dc, "K92 [S3]")
+        dc = set_nested(dc, "K92 [S3]", "THIS")
+        read_nested(dc, "K92 [S3]")
+        pass
+
+        # for link in sorted(pathway.links, key=lambda x: x.level):
+        # for link in pathway.links:
+        #     left = link.tail.short_name
+        #     right = link.head.short_name
+        #
+        #     self.logger.debug('tail head : %s -- %s' % (left, right))
+        #     self.logger.debug('keys: %s' % d.keys())
+        #
+        #     if left in d:
+        #         d[left].update({right: {}})
+        #         backtrack[right].append(left)
+        #         self.logger.debug('existing head: %s' % backtrack[link.head.short_name])
+        #     elif left in backtrack:
+        #         for g in backtrack[left]:
+        #             pass
+        #
+        #     else:
+        #         d.update({right: {}})
+        #         backtrack[right].append(left)
+        #     self.logger.debug('---')

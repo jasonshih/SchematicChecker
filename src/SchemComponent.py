@@ -223,6 +223,7 @@ class SchematicNode(SpecialSymbols):
         (self.symbol, self.pin_number, self.pin_name) = symbol_and_pins
         self.tuple = symbol_and_pins
         self.name = '|'.join(symbol_and_pins)
+        self.short_name = self.symbol + ' @' + self.pin_name
         self.masked_name = self.name
         self.dni = False
         self.is_device = True if self.symbol in self.device_symbols else False
