@@ -131,9 +131,12 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
 
         print('links')
         print('=' * 80)
-        for i, link in enumerate(pathway.links):
-            out_str = '[{num:03d}] '.format(num=i) + ' .. ' * link.level + str(link)
+        for i, link in enumerate(self.tree(pathway)):
+            # out_str = '[{num:03d}] '.format(num=i) + ' .. ' * link.level + str(link)
+            out_str = '[{num:03d}] '.format(num=i) + str(link)
             print(out_str)
+
+
         print('\v\v')
 
         if not just_links:
@@ -169,92 +172,98 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
     @LOG.debug_lvl()
     def tree(self, pathway: SchematicPath):
 
-        def read_nested(d: dict, key):
+        def get_val_at_nested_key(d: dict, key, is_root=True, found_vals=list):
+            if is_root:
+                found_vals = []
+
             for k, v in d.items():
                 if isinstance(v, dict):
-                    read_nested(v, key)
+                    found_vals = get_val_at_nested_key(v, key, is_root=False, found_vals=found_vals)
                 else:
                     pass
 
                 if k == key:
+                    found_vals.append(v)
                     print('{0}: {1}'.format(k, v))
 
-        def set_nested(d: dict, key, val, root=True, found=False):
+            if is_root:
+                return found_vals
 
+        def set_key_at_branch(d: dict, branch, key, val=None, is_root=True, found=False):
             for k, v in d.items():
                 if isinstance(v, dict):
-                    found = set_nested(v, key, val, root=False, found=found)
+                    found = set_key_at_branch(v, branch, key, is_root=False, found=found)
                 else:
                     pass
 
-                if k == key:
-                    d[key].update({val: None})
+                if k == branch:
+                    if d[branch]:
+                        d[branch].update({key: val})
+                    else:
+                        d[branch] = {key: val}
                     found = True
 
-            if root:
+            if is_root:
                 if not found:
-                    d.update({val: None})
+                    d.update({key: val})
                 return d
             else:
                 return found
 
+        def ascii_tree(d: dict, is_root=True, al=list, lvl=0):
+            if is_root:
+                al = []
+                lvl = 0
 
-        'TAIL -- HEAD'
+            if d:
+                for k, v in d.items():
+                    il = []
+                    for i in range(lvl):
+                        if i == lvl-1:
+                            il.append('`-- ')
+                        else:
+                            il.append('    ')
+                    il.append(k)
+                    al.append(il)
 
-        backtrack = defaultdict(list)
-        dc = {
-              "K1A [COM1]": {
-                "K1A [S1]": {
-                  "J6 [IO67]": None
-                },
-                "K1A [S2]": {
-                  "R121A [NEG]": {
-                    "R121A [POS]": {
-                      "K92 [S1]": {
-                        "K92 [COM1]": {
-                          "J6 [IO7]": None,
-                          "JP601 [IO2]": {
-                            "JP601 [IO1]": {
-                              "J6 [IO17]": None
-                            }
-                          },
-                          "J6 [IO8]": None
-                        }
-                      },
-                      "K92 [S3]": {
-                        "K92 [COM2]": {
-                          "J6 [IO7]": None,
-                          "JP601 [IO2]": None,
-                          "J6 [IO8]": None
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-        read_nested(dc, "K92 [S3]")
-        dc = set_nested(dc, "K92 [S3]", "THIS")
-        read_nested(dc, "K92 [S3]")
-        pass
+                    if d[k]:
+                        lvl += 1
+                        al = ascii_tree(d[k], is_root=False, al=al, lvl=lvl)
+                        lvl -= 1
 
-        # for link in sorted(pathway.links, key=lambda x: x.level):
-        # for link in pathway.links:
-        #     left = link.tail.short_name
-        #     right = link.head.short_name
-        #
-        #     self.logger.debug('tail head : %s -- %s' % (left, right))
-        #     self.logger.debug('keys: %s' % d.keys())
-        #
-        #     if left in d:
-        #         d[left].update({right: {}})
-        #         backtrack[right].append(left)
-        #         self.logger.debug('existing head: %s' % backtrack[link.head.short_name])
-        #     elif left in backtrack:
-        #         for g in backtrack[left]:
-        #             pass
-        #
-        #     else:
-        #         d.update({right: {}})
-        #         backtrack[right].append(left)
-        #     self.logger.debug('---')
+            if is_root:
+                empt_fill = '    '
+                vert_fill = '|   '
+                end__fill = '`-- '
+                plus_fill = '+-- '
+
+                replacement = set()
+                for each_line in reversed(al):
+
+                    to_remove = []
+                    for index in replacement:
+                        if each_line[index] == empt_fill:
+                            each_line[index] = vert_fill
+                        elif each_line[index] == end__fill:
+                            each_line[index] = plus_fill
+                        else:
+                            to_remove.append(index)
+
+                    while to_remove:
+                        replacement.discard(to_remove.pop())
+
+                    for i, e in enumerate(each_line):
+                        if e == end__fill:
+                            replacement.add(i)
+
+                sl = [''.join(x) for x in al]
+
+                return sl
+            else:
+                return al
+
+        nested_dict = {}
+        for link in pathway.links:
+            nested_dict = set_key_at_branch(nested_dict, branch=link.tail.short_name, key=link.head.short_name)
+
+        return ascii_tree({pathway.origin.short_name: nested_dict})
