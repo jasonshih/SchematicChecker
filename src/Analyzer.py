@@ -129,32 +129,27 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
     @LOG.debug_lvl(logging.ERROR)
     def view_everything(self, pathway: SchematicPath, just_links=False):
 
+        def print_with_header(title, args):
+            print(title)
+            print('=' * 40)
+            [print(x) for x in args]
+            print('\v\v')
+
         print('links')
         print('=' * 80)
-        for i, link in enumerate(self.tree(pathway)):
+        for i, link in enumerate(self.ascii_tree(pathway)):
             # out_str = '[{num:03d}] '.format(num=i) + ' .. ' * link.level + str(link)
             out_str = '[{num:03d}] '.format(num=i) + str(link)
             print(out_str)
-
-
         print('\v\v')
 
         if not just_links:
-            print('origin')
-            print('=' * 40)
-            print(pathway.origin.name)
-            print('\v\v')
 
-            print('device pins')
-            print('=' * 40)
-            [print(x.name) for x in pathway.iter_devices_at_links]
-            print('\v\v')
-
-            print('channel assignments')
-            print('=' * 40)
             testers = set([x.name for x in pathway.iter_testers_at_links])
-            [print(t) for t in testers]
-            print('\v\v')
+
+            print_with_header('origin', [pathway.origin.name])
+            print_with_header('device pins', [x.name for x in pathway.iter_devices_at_links])
+            print_with_header('channel assignments', testers)
 
             for tester in testers:
                 subsets = self.create_subset_path(pathway, tester)
@@ -165,12 +160,10 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
                         relay_set.add(k)
 
                 if relay_set:
-                    print('relays to: %s' % tester)
-                    [print(k) for k in relay_set]
-                    print('\v\v')
+                    print_with_header('relays to: %s' % tester, relay_set)
 
     @LOG.debug_lvl()
-    def tree(self, pathway: SchematicPath):
+    def ascii_tree(self, pathway: SchematicPath):
 
         def get_val_at_nested_key(d: dict, key, is_root=True, found_vals=list):
             if is_root:
@@ -210,7 +203,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             else:
                 return found
 
-        def ascii_tree(d: dict, is_root=True, al=list, lvl=0):
+        def asciify(d: dict, is_root=True, al=list, lvl=0):
             if is_root:
                 al = []
                 lvl = 0
@@ -228,7 +221,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
 
                     if d[k]:
                         lvl += 1
-                        al = ascii_tree(d[k], is_root=False, al=al, lvl=lvl)
+                        al = asciify(d[k], is_root=False, al=al, lvl=lvl)
                         lvl -= 1
 
             if is_root:
@@ -266,4 +259,4 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         for link in pathway.links:
             nested_dict = set_key_at_branch(nested_dict, branch=link.tail.short_name, key=link.head.short_name)
 
-        return ascii_tree({pathway.origin.short_name: nested_dict})
+        return asciify({pathway.origin.short_name: nested_dict})
