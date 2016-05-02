@@ -1,5 +1,6 @@
 from src.Analyzer import PathAnalyzer
 from src.DrawingBoard import BlockVisualizer
+from src.Explorer import Explorer
 from src.SchemComponent import *
 from collections import defaultdict
 from operator import itemgetter
@@ -155,9 +156,9 @@ class Reporter:
         for this_nets in many_nets:
             nuts_from_edge = oo.get_nodes_with_nets(this_nets)
             nuts_from_edge = [x for x in nuts_from_edge if x.symbol in oo.connector_symbols]
-            for nut in nuts_from_edge:
-                this_path = oo.explore(nut)
-                az.view_everything(this_path, just_links=True)
+            for nut in nuts_from_edge: pass
+                # this_path = oo.explore(nut)
+                # self.view_pin_details(this_path)
 
     def show_component(self, oo, symbol, pin):
         self.logger.info('=== show component ===')
@@ -166,3 +167,46 @@ class Reporter:
         nut = oo.get_nodes_with_pin(symbol=symbol, pin=pin)
         this_path = oo.explore(nut)
         xx.draw(this_path)
+
+    def view_pin_details(self, oo, symbol, pin_name):
+
+        def print_with_header(title, args):
+            print(title)
+            print('=' * 80)
+            [print(x) for x in args]
+            print('\v\v')
+
+        az = PathAnalyzer()
+
+        nut = oo.get_nodes_with_pin(symbol, pin_name)
+        this_path = oo.explore(nut)
+
+        ms_ok = {}
+        az.compile(this_path)
+        for s in az.iter_all_device_symbols(oo):
+            ms_nut = oo.get_nodes_with_pin(s, pin_name)
+            ms_path = oo.explore(ms_nut)
+            ms_ok.update({s: az.is_multi_site_ok(ms_path)})
+
+        out_str = []
+        for i, link in enumerate(az.ascii_tree(this_path)):
+            out_str.append('[{num:03d}] '.format(num=i) + str(link))
+        testers = set([x.name for x in this_path.iter_testers_at_links])
+
+        print_with_header('links', out_str)
+        print_with_header('multi site ok', sorted(ms_ok.items(),
+                                                  key=lambda x: int(re.match('[a-zA-Z]+(\d+)', x[0]).group(1))))
+        print_with_header('origin', [this_path.origin.name])
+        print_with_header('device pins', [x.name for x in this_path.iter_devices_at_links])
+        print_with_header('channel assignments', sorted(testers))
+
+        for tester in sorted(testers):
+            subsets = az.create_subset_path(this_path, tester)
+
+            relay_set = set()
+            for subset in subsets:
+                for k in subset.iter_active_components:
+                    relay_set.add(k)
+
+            if relay_set:
+                print_with_header('relays to: %s' % tester, relay_set)

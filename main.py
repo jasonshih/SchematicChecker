@@ -2,7 +2,12 @@ from src.Explorer import Explorer
 # from src.DrawingBoard import BlockVisualizer
 from src.Reporter import Reporter
 from src.Analyzer import PathAnalyzer
+from src.SchemComponent import *
 import logging
+
+
+
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR)     # DEBUG INFO WARN ERROR
@@ -15,10 +20,10 @@ if __name__ == "__main__":
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     oo.read_xlsx(xlsx_file)
 
-    nut = oo.get_nodes_with_pin('X0', 'GPIO7')
-    this_path = oo.explore(nut)
-    az.view_everything(this_path)
-    # az.ascii_tree(this_path)
+    report.view_pin_details(oo, 'X0', 'VIN_GR4')
+
+    # nut = oo.get_nodes_with_pin('X0', 'GPIO7')
+    # this_path = oo.explore(nut)
 
     # report.create_dgs_report(oo)
 

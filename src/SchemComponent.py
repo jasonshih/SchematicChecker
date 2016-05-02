@@ -146,11 +146,11 @@ class SchematicPath(SpecialSymbols, SpecialNets):
         self.subset = defaultdict(list)
         self.az = analyzer_obj
 
-        self.iter_devices_at_links = {node for link in self.links for node in link.nodes
-                                      if node.symbol in self.device_symbols}
-        self.iter_testers_at_links = {link.edge for link in self.links if link.edge.channel}
+        self.iter_devices_at_links = (node for link in self.links for node in link.nodes
+                                      if node.symbol in self.device_symbols)
+        self.iter_testers_at_links = (link.edge for link in self.links if link.edge.channel)
 
-        self.iter_active_components = {link for link in self.links if link.tail.is_active and link.is_internal}
+        self.iter_active_components = (link for link in self.links if link.tail.is_active and link.is_internal)
 
     @staticmethod
     def __sort_links(links):

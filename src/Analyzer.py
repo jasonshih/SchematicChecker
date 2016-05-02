@@ -126,44 +126,8 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
     def iterset_device_symbols(pathway: SchematicPath):
         return {node for link in pathway.links for node in link.nodes if node.is_device}
 
-    @LOG.debug_lvl(logging.ERROR)
-    def view_everything(self, pathway: SchematicPath, just_links=False):
-
-        def print_with_header(title, args):
-            print(title)
-            print('=' * 40)
-            [print(x) for x in args]
-            print('\v\v')
-
-        print('links')
-        print('=' * 80)
-        for i, link in enumerate(self.ascii_tree(pathway)):
-            # out_str = '[{num:03d}] '.format(num=i) + ' .. ' * link.level + str(link)
-            out_str = '[{num:03d}] '.format(num=i) + str(link)
-            print(out_str)
-        print('\v\v')
-
-        if not just_links:
-
-            testers = set([x.name for x in pathway.iter_testers_at_links])
-
-            print_with_header('origin', [pathway.origin.name])
-            print_with_header('device pins', [x.name for x in pathway.iter_devices_at_links])
-            print_with_header('channel assignments', testers)
-
-            for tester in testers:
-                subsets = self.create_subset_path(pathway, tester)
-
-                relay_set = set()
-                for subset in subsets:
-                    for k in subset.iter_active_components:
-                        relay_set.add(k)
-
-                if relay_set:
-                    print_with_header('relays to: %s' % tester, relay_set)
-
-    @LOG.debug_lvl()
     def ascii_tree(self, pathway: SchematicPath):
+        # TODO: separate this to another class
 
         def get_val_at_nested_key(d: dict, key, is_root=True, found_vals=list):
             if is_root:
@@ -260,3 +224,4 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             nested_dict = set_key_at_branch(nested_dict, branch=link.tail.short_name, key=link.head.short_name)
 
         return asciify({pathway.origin.short_name: nested_dict})
+
