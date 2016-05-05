@@ -2,11 +2,8 @@ from src.Explorer import Explorer
 # from src.DrawingBoard import BlockVisualizer
 from src.Reporter import Reporter
 from src.Analyzer import PathAnalyzer
-from src.SchemComponent import *
+# from src.SchemComponent import *
 import logging
-
-
-
 
 
 if __name__ == "__main__":
@@ -20,7 +17,10 @@ if __name__ == "__main__":
     xlsx_file = '/Users/cahyo/Dropbox/programming/python/SchematicChecker/input_files/P1495_sample.xlsx'
     oo.read_xlsx(xlsx_file)
 
-    report.view_pin_details(oo, 'X0', 'VIN_GR4')
+    search_result = az.search_pins_or_nets(oo, 'DGS')
+    pass
+
+    # report.view_pin_details(oo, 'X0', 'VIN_GR4')
 
     # nut = oo.get_nodes_with_pin('X0', 'GPIO7')
     # this_path = oo.explore(nut)

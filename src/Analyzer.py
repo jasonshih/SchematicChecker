@@ -58,6 +58,14 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             return False
 
     @staticmethod
+    def __mask_symbol_and_nets_identifier(pathway: SchematicPath):
+        outer_list = []
+        for link in pathway.links:
+            inner_tuple = tuple([y.masked_name for y in link.items])
+            outer_list.append(inner_tuple)
+        return outer_list
+
+    @staticmethod
     def get_uvi_force_sense(oo):
         nets_dict = oo.NETS_DICT
         pat_uvi = re.compile('(J\d{1,2}_UVI80_\d{1,2})(\w*)', re.I)
@@ -71,6 +79,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         return checks
 
     def create_subset_path(self, pathway: SchematicPath, the_nets):
+        # TODO: belong to SchematicPath
         # self.logger.setLevel(logging.INFO)
         all_nets_in_path = [link.edge.name for link in pathway.links]
         occurrence = all_nets_in_path.count(the_nets)
@@ -111,22 +120,7 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
         return sorted((x for x in oo.SYMBOL_DICT.keys() if x in oo.device_symbols))
 
     @staticmethod
-    def __mask_symbol_and_nets_identifier(pathway: SchematicPath):
-        outer_list = []
-        for link in pathway.links:
-            inner_tuple = tuple([y.masked_name for y in link.items])
-            outer_list.append(inner_tuple)
-        return outer_list
-
-    @staticmethod
-    def iterset_tester_nets(pathway: SchematicPath):
-        return {link.edge for link in pathway.links if link.edge.channel}
-
-    @staticmethod
-    def iterset_device_symbols(pathway: SchematicPath):
-        return {node for link in pathway.links for node in link.nodes if node.is_device}
-
-    def ascii_tree(self, pathway: SchematicPath):
+    def ascii_tree(pathway: SchematicPath):
         # TODO: separate this to another class
 
         def get_val_at_nested_key(d: dict, key, is_root=True, found_vals=list):
@@ -225,3 +219,22 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
 
         return asciify({pathway.origin.short_name: nested_dict})
 
+    @staticmethod
+    def search_pins_or_nets(oo, search_str, symbol='X0'):
+        pins = sorted([SchematicNode((symbol, p[0], p[1])) for p in oo.SYMBOL_DICT[symbol].pins if search_str in p[1]],
+                      key=lambda x: x.name)
+        nets = sorted([SchematicEdge(n) for n in oo.NETS_DICT if search_str in n], key=lambda x: x.name)
+        pins.extend(nets)
+        return pins
+
+    @staticmethod
+    def get_pins_to_nets(oo, symbol, nets):
+        return sorted([SchematicNode(x) for x in oo.NETS_DICT[nets] if x[0] in symbol], key=lambda x: x.pin_name)
+
+    @staticmethod
+    def get_symbols_to_nets(oo, nets):
+        return sorted([SchematicNode(x) for x in oo.NETS_DICT[nets]], key=lambda x: x.symbol)
+
+    @staticmethod
+    def get_nets_count(oo):
+        return sorted([(x, len(y)) for x, y in oo.NETS_DICT.items()], key=lambda x: x[1], reverse=True)

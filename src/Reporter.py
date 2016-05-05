@@ -4,6 +4,7 @@ from src.Explorer import Explorer
 from src.SchemComponent import *
 from collections import defaultdict
 from operator import itemgetter
+from itertools import chain
 import logging
 import re
 
@@ -14,6 +15,8 @@ class Reporter:
         self.logger = logging.getLogger(__name__)
         pass
 
+        # TODO: top level tests: force-sense, multi-site, channel-map, dni-list, dgs-list
+
     def multi_site_check(self, oo):
         self.logger.info('=== multi site check ===')
 
@@ -22,10 +25,6 @@ class Reporter:
         asymmetrical_list = []
 
         for pin in az.iter_all_pins_in_symbol('X0', oo):
-
-            # if pin.startswith('CDC'):
-            #     # TODO find out why CDC pins are all showing mismatched
-            #     continue
 
             for i, site in enumerate(az.iter_all_device_symbols(oo)):
                 nut = oo.get_nodes_with_pin(symbol=site, pin=pin)
@@ -96,23 +95,6 @@ class Reporter:
                         else:
                             self.logger.debug('terminal.tester_channel is empty at nets: %s', terminal)
 
-                # terminals = this_path.subset.keys()
-                #
-                # if not terminals:
-                #     self.logger.warn('no tester channel assigned for pin: %s', pin)
-                #     cm[(pin, 'N/C')].append('_')
-                # else:
-                #     for terminal in terminals:
-                #         # TODO fix the 0 0 -1 -1 below.
-                #         last_link = -1
-                #         edge_obj = this_path.subset[terminal][0][last_link].edge
-                #         if terminal == 'AGND' and len(terminals) == 1:
-                #             cm[(pin, 'GND')].append('_')
-                #         elif edge_obj.channel:
-                #             cm[(pin, edge_obj.channel.ch_type)].append(edge_obj.channel.ch_map)
-                #         else:
-                #             self.logger.debug('terminal.tester_channel is empty at nets: %s', terminal)
-
         for u, v in cm.items():
             combined = list(u)
             combined.extend(v.copy())
@@ -121,21 +103,6 @@ class Reporter:
         cm_lists = sorted(cm_lists, key=itemgetter(1))
         cm_lists = sorted(cm_lists, key=itemgetter(0))
         return cm_lists
-
-    def get_pins_to_nets(self, oo, symbol, nets):
-        # TODO belong to analyzer
-        self.logger.info('=== creating list of device pins connected to nets ===')
-        return sorted([SchematicNode(x) for x in oo.NETS_DICT[nets] if x[0] in symbol], key=lambda x: x.pin_name)
-
-    def get_symbols_to_nets(self, oo, nets):
-        # TODO belong to analyzer
-        self.logger.info('=== creating list of symbols connected to nets ===')
-        return sorted([SchematicNode(x) for x in oo.NETS_DICT[nets]], key=lambda x: x.symbol)
-
-    def get_nets_count(self, oo):
-        # TODO belong to analyzer
-        self.logger.info('=== get_nets_count ===')
-        return sorted([(x, len(y)) for x, y in oo.NETS_DICT.items()], key=lambda x: x[1], reverse=True)
 
     def create_dni_report(self, oo):
         self.logger.info('=== creating dni report ===')
@@ -151,14 +118,16 @@ class Reporter:
 
     def create_dgs_report(self, oo):
         self.logger.info('=== creating DGS report ===')
-        az = PathAnalyzer()
-        many_nets = oo.get_nets_which_contain('DGS')
-        for this_nets in many_nets:
-            nuts_from_edge = oo.get_nodes_with_nets(this_nets)
-            nuts_from_edge = [x for x in nuts_from_edge if x.symbol in oo.connector_symbols]
-            for nut in nuts_from_edge: pass
-                # this_path = oo.explore(nut)
-                # self.view_pin_details(this_path)
+        raise Warning('Incomplete Coding')
+
+        # az = PathAnalyzer()
+        # many_nets = oo.get_nets_which_contain('DGS')
+        # for this_nets in many_nets:
+        #     nuts_from_edge = oo.get_nodes_with_nets(this_nets)
+        #     nuts_from_edge = [x for x in nuts_from_edge if x.symbol in oo.connector_symbols]
+        #     for nut in nuts_from_edge: pass
+        #         # this_path = oo.explore(nut)
+        #         # self.view_pin_details(this_path)
 
     def show_component(self, oo, symbol, pin):
         self.logger.info('=== show component ===')
@@ -168,7 +137,8 @@ class Reporter:
         this_path = oo.explore(nut)
         xx.draw(this_path)
 
-    def view_pin_details(self, oo, symbol, pin_name):
+    @staticmethod
+    def view_pin_details(oo, symbol, pin_name):
 
         def print_with_header(title, args):
             print(title)

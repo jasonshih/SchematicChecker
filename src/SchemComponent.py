@@ -13,10 +13,10 @@ class LOG:
         def enable(f):
             @wraps(f)
             def wrapper(slf, *args, **kwargs):
-                prev, next = slf.logger.getEffectiveLevel(), lvl
-                slf.logger.setLevel(next)
+                p, n = slf.logger.getEffectiveLevel(), lvl
+                slf.logger.setLevel(n)
                 y = f(slf, *args, **kwargs)
-                slf.logger.setLevel(prev)
+                slf.logger.setLevel(p)
                 return y
             return wrapper
         return enable
@@ -147,7 +147,7 @@ class SchematicPath(SpecialSymbols, SpecialNets):
         self.az = analyzer_obj
 
         self.iter_devices_at_links = (node for link in self.links for node in link.nodes
-                                      if node.symbol in self.device_symbols)
+                                      if node.is_device)
         self.iter_testers_at_links = (link.edge for link in self.links if link.edge.channel)
 
         self.iter_active_components = (link for link in self.links if link.tail.is_active and link.is_internal)
