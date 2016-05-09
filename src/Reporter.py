@@ -1,10 +1,6 @@
 from src.Analyzer import PathAnalyzer
-from src.DrawingBoard import BlockVisualizer
-from src.Explorer import Explorer
-from src.SchemComponent import *
 from collections import defaultdict
 from operator import itemgetter
-from itertools import chain
 import logging
 import re
 
@@ -24,10 +20,10 @@ class Reporter:
 
         asymmetrical_list = []
 
-        for pin in az.iter_all_pins_in_symbol('X0', oo):
+        for pin in oo.iter_all_pins_in_symbol('X0'):
 
-            for i, site in enumerate(az.iter_all_device_symbols(oo)):
-                nut = oo.get_nodes_with_pin(symbol=site, pin=pin)
+            for i, site in enumerate(oo.iter_all_device_symbols()):
+                nut = oo.get_nodes_from_symbol_and_pin(symbol=site, pin=pin)
                 this_path = oo.explore(nut)
                 if i == 0:
                     az.compile(this_path)
@@ -64,11 +60,10 @@ class Reporter:
     def create_channel_map(self, oo):
         self.logger.info('=== creating channel map ===')
 
-        az = PathAnalyzer()
         cm = defaultdict(set)
         cm_lists = []
-        for site in az.iter_all_device_symbols(oo):
-            for pin in az.iter_all_pins_in_symbol('X0', oo):
+        for site in oo.iter_all_device_symbols():
+            for pin in oo.iter_all_pins_in_symbol('X0'):
 
                 if pin.startswith('CDC'):
                     # TODO issues on VPP, and loopback circuitry:
@@ -76,10 +71,10 @@ class Reporter:
                     # TODO CDC_IN3_P, CDC_LO_M/P, CDC_SPKDRV_M/P
                     continue
 
-                nut = oo.get_nodes_with_pin(site, pin)
+                nut = oo.get_nodes_from_symbol_and_pin(site, pin)
                 this_path = oo.explore(nut)
 
-                terminals = az.iterset_tester_nets(this_path)
+                terminals = set(this_path.iter_testers_at_links)
                 if 'AGND' in [x.edge.name for x in this_path.links if x.level == 0]:
                     terminals.add('AGND')
 
@@ -116,7 +111,7 @@ class Reporter:
                 dni_dict[symbol.id].append(nets)
         return dni_dict
 
-    def create_dgs_report(self, oo):
+    def create_dgs_report(self):
         self.logger.info('=== creating DGS report ===')
         raise Warning('Incomplete Coding')
 
@@ -129,13 +124,13 @@ class Reporter:
         #         # this_path = oo.explore(nut)
         #         # self.view_pin_details(this_path)
 
-    def show_component(self, oo, symbol, pin):
-        self.logger.info('=== show component ===')
-
-        xx = BlockVisualizer()
-        nut = oo.get_nodes_with_pin(symbol=symbol, pin=pin)
-        this_path = oo.explore(nut)
-        xx.draw(this_path)
+    # def show_component(self, oo, symbol, pin):
+    #     self.logger.info('=== show component ===')
+    #
+    #     xx = BlockVisualizer()
+    #     nut = oo.get_nodes_with_pin(symbol=symbol, pin=pin)
+    #     this_path = oo.explore(nut)
+    #     xx.draw(this_path)
 
     @staticmethod
     def view_pin_details(oo, symbol, pin_name):
@@ -148,18 +143,18 @@ class Reporter:
 
         az = PathAnalyzer()
 
-        nut = oo.get_nodes_with_pin(symbol, pin_name)
+        nut = oo.get_nodes_from_symbol_and_pin(symbol, pin_name)
         this_path = oo.explore(nut)
 
         ms_ok = {}
         az.compile(this_path)
-        for s in az.iter_all_device_symbols(oo):
-            ms_nut = oo.get_nodes_with_pin(s, pin_name)
+        for s in oo.iter_all_device_symbols():
+            ms_nut = oo.get_nodes_from_symbol_and_pin(s, pin_name)
             ms_path = oo.explore(ms_nut)
             ms_ok.update({s: az.is_multi_site_ok(ms_path)})
 
         out_str = []
-        for i, link in enumerate(az.ascii_tree(this_path)):
+        for i, link in enumerate(this_path.ascii_tree()):
             out_str.append('[{num:03d}] '.format(num=i) + str(link))
         testers = set([x.name for x in this_path.iter_testers_at_links])
 
@@ -171,7 +166,7 @@ class Reporter:
         print_with_header('channel assignments', sorted(testers))
 
         for tester in sorted(testers):
-            subsets = az.create_subset_path(this_path, tester)
+            subsets = this_path.create_subset_path(tester)
 
             relay_set = set()
             for subset in subsets:

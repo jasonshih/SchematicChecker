@@ -1,5 +1,3 @@
-# import re
-# import logging
 from src.SchemComponent import *
 from collections import defaultdict
 
@@ -78,163 +76,42 @@ class PathAnalyzer(SpecialSymbols, SpecialNets):
             checks[mo.group(1)].append(mo.group(2))
         return checks
 
-    def create_subset_path(self, pathway: SchematicPath, the_nets):
-        # TODO: belong to SchematicPath
-        # self.logger.setLevel(logging.INFO)
-        all_nets_in_path = [link.edge.name for link in pathway.links]
-        occurrence = all_nets_in_path.count(the_nets)
 
-        all_path_to_plane = []
-        if occurrence == 0:
-            self.logger.debug('create_subset_path: No path from %s to %s', pathway.origin.name, the_nets)
-        else:
-            matches_indexes = (i for i, n in enumerate(all_nets_in_path) if n == the_nets)
-            for index in matches_indexes:
-                self.logger.debug('create_subset_path: from %s to %s, starting index [%s]',
-                                  pathway.origin.name, the_nets, index)
-                path_to_plane = []
-                z = pathway.links[index].head.name
-                # TODO try reversed
-                for i in range(index, -1, -1):
-                    link = pathway.links[i]
-                    if link.head.name == z:
-                        # self.logger.debug('create_subset_path: recording: [%s] %s', i, link)
-                        path_to_plane.insert(0, link)
-                        z = link.tail.name
-                    else:
-                        # self.logger.debug('create_subset_path: ignoring: [%s] %s', i, link)
-                        pass
+class ExplorerUtilities:
 
-                self.logger.debug('create_subset_path: saving with path length: %s', len(path_to_plane))
-                all_path_to_plane.append(SchematicPath(path_to_plane, PathAnalyzer()))
+    def iter_all_pins_in_symbol(self, symbol):
+        return sorted((y for x, y in self.SYMBOL_DICT[symbol].pins.keys()))
 
-        # self.logger.setLevel(logging.DEBUG)
-        return all_path_to_plane
+    def iter_all_device_symbols(self):
+        return sorted((x for x in self.SYMBOL_DICT.keys() if x in self.device_symbols))
 
-    @staticmethod
-    def iter_all_pins_in_symbol(symbol, oo):
-        return sorted((y for x, y in oo.SYMBOL_DICT[symbol].pins.keys()))
-
-    @staticmethod
-    def iter_all_device_symbols(oo):
-        return sorted((x for x in oo.SYMBOL_DICT.keys() if x in oo.device_symbols))
-
-    @staticmethod
-    def ascii_tree(pathway: SchematicPath):
-        # TODO: separate this to another class
-
-        def get_val_at_nested_key(d: dict, key, is_root=True, found_vals=list):
-            if is_root:
-                found_vals = []
-
-            for k, v in d.items():
-                if isinstance(v, dict):
-                    found_vals = get_val_at_nested_key(v, key, is_root=False, found_vals=found_vals)
-                else:
-                    pass
-
-                if k == key:
-                    found_vals.append(v)
-                    print('{0}: {1}'.format(k, v))
-
-            if is_root:
-                return found_vals
-
-        def set_key_at_branch(d: dict, branch, key, val=None, is_root=True, found=False):
-            for k, v in d.items():
-                if isinstance(v, dict):
-                    found = set_key_at_branch(v, branch, key, is_root=False, found=found)
-                else:
-                    pass
-
-                if k == branch:
-                    if d[branch]:
-                        d[branch].update({key: val})
-                    else:
-                        d[branch] = {key: val}
-                    found = True
-
-            if is_root:
-                if not found:
-                    d.update({key: val})
-                return d
-            else:
-                return found
-
-        def asciify(d: dict, is_root=True, al=list, lvl=0):
-            if is_root:
-                al = []
-                lvl = 0
-
-            if d:
-                for k, v in d.items():
-                    il = []
-                    for i in range(lvl):
-                        if i == lvl-1:
-                            il.append('`-- ')
-                        else:
-                            il.append('    ')
-                    il.append(k)
-                    al.append(il)
-
-                    if d[k]:
-                        lvl += 1
-                        al = asciify(d[k], is_root=False, al=al, lvl=lvl)
-                        lvl -= 1
-
-            if is_root:
-                empt_fill = '    '
-                vert_fill = '|   '
-                end__fill = '`-- '
-                plus_fill = '+-- '
-
-                replacement = set()
-                for each_line in reversed(al):
-
-                    to_remove = []
-                    for index in replacement:
-                        if each_line[index] == empt_fill:
-                            each_line[index] = vert_fill
-                        elif each_line[index] == end__fill:
-                            each_line[index] = plus_fill
-                        else:
-                            to_remove.append(index)
-
-                    while to_remove:
-                        replacement.discard(to_remove.pop())
-
-                    for i, e in enumerate(each_line):
-                        if e == end__fill:
-                            replacement.add(i)
-
-                sl = [''.join(x) for x in al]
-
-                return sl
-            else:
-                return al
-
-        nested_dict = {}
-        for link in pathway.links:
-            nested_dict = set_key_at_branch(nested_dict, branch=link.tail.short_name, key=link.head.short_name)
-
-        return asciify({pathway.origin.short_name: nested_dict})
-
-    @staticmethod
-    def search_pins_or_nets(oo, search_str, symbol='X0'):
-        pins = sorted([SchematicNode((symbol, p[0], p[1])) for p in oo.SYMBOL_DICT[symbol].pins if search_str in p[1]],
+    def search_pins_or_nets(self, search_str, symbol='X0'):
+        pins = sorted([SchematicNode((symbol, p[0], p[1])) for p in self.SYMBOL_DICT[symbol].pins if search_str in p[1]],
                       key=lambda x: x.name)
-        nets = sorted([SchematicEdge(n) for n in oo.NETS_DICT if search_str in n], key=lambda x: x.name)
-        pins.extend(nets)
-        return pins
+        nets = sorted([SchematicEdge(n) for n in self.NETS_DICT if search_str in n], key=lambda x: x.name)
+        return {'pins': pins, 'nets': nets}
 
-    @staticmethod
-    def get_pins_to_nets(oo, symbol, nets):
-        return sorted([SchematicNode(x) for x in oo.NETS_DICT[nets] if x[0] in symbol], key=lambda x: x.pin_name)
+    def get_nodes_from_symbol_and_nets(self, symbol, nets):
+        return sorted([SchematicNode(x) for x in self.NETS_DICT[nets] if x[0] in symbol], key=lambda x: x.pin_name)
 
-    @staticmethod
-    def get_symbols_to_nets(oo, nets):
-        return sorted([SchematicNode(x) for x in oo.NETS_DICT[nets]], key=lambda x: x.symbol)
+    def get_nodes_from_symbol_and_pin(self, symbol, pin):
+        lst = self.SYMBOL_DICT[symbol].pins.keys()
+        nodes = [SchematicNode((symbol, x, y)) for x, y in lst if x == pin or y == pin]
 
-    @staticmethod
-    def get_nets_count(oo):
-        return sorted([(x, len(y)) for x, y in oo.NETS_DICT.items()], key=lambda x: x[1], reverse=True)
+        if len(nodes) > 1:
+            self.logger.warn('get_nodes_with_pin: multiple nodes found on %s with pin = %s', symbol, pin)
+        if len(nodes) == 0:
+            self.logger.error('get_nodes_with_pin: zero nodes found on %s with pin = %s', symbol, pin)
+            raise ValueError
+
+        self.logger.debug('get_nodes_with_pin: %s' % str(nodes))
+        return nodes[0]
+
+    def get_nodes_from_nets(self, nets):
+        return sorted([SchematicNode(x) for x in self.NETS_DICT[nets]], key=lambda x: x.symbol)
+
+    def get_nets_which_contain(self, text):
+        return sorted([x for x in self.NETS_DICT if text in x])
+
+    def get_nets_count(self):
+        return sorted([(x, len(y)) for x, y in self.NETS_DICT.items()], key=lambda x: x[1], reverse=True)

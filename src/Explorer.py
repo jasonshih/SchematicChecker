@@ -1,6 +1,6 @@
 from openpyxl import load_workbook
 from src.SchemComponent import *
-from src.Analyzer import PathAnalyzer
+from src.Analyzer import ExplorerUtilities
 import logging
 from itertools import chain
 
@@ -22,7 +22,7 @@ class SourceReader(SpecialNets, SpecialSymbols):
     def read_xlsx(self, file_name):
         self.logger.info('importing schematic symbol and nets database...')
         wb = load_workbook(file_name)
-        ws = wb.get_active_sheet()
+        ws = wb.active
 
         for row in ws.rows:
             for cell in row:
@@ -56,7 +56,7 @@ class SourceReader(SpecialNets, SpecialSymbols):
         self.logger.info('importing schematic symbol and nets database done!')
 
 
-class Explorer(SourceReader, SpecialSymbols):
+class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -112,7 +112,7 @@ class Explorer(SourceReader, SpecialSymbols):
 
         # TODO consider using partial functools
         if self.lvl == 0:
-            return SchematicPath(self.explored_links, PathAnalyzer())
+            return SchematicPath(self.explored_links)
 
     def __reshuffle_links(self, tail_name):
         for i, lnk in enumerate(self.explored_links):
@@ -184,23 +184,3 @@ class Explorer(SourceReader, SpecialSymbols):
     def __clear_nodes_and_links(self):
         self.seen_nodes = []
         self.explored_links = []
-
-    def get_nodes_with_pin(self, symbol, pin):
-        lst = self.SYMBOL_DICT[symbol].pins.keys()
-        nodes = [SchematicNode((symbol, x, y)) for x, y in lst if x == pin or y == pin]
-
-        if len(nodes) > 1:
-            self.logger.warn('get_nodes_with_pin: multiple nodes found on %s with pin = %s', symbol, pin)
-        if len(nodes) == 0:
-            self.logger.error('get_nodes_with_pin: zero nodes found on %s with pin = %s', symbol, pin)
-            raise ValueError
-
-        self.logger.debug('get_nodes_with_pin: %s' % str(nodes))
-        return nodes[0]
-
-    def get_nodes_with_nets(self, nets):
-        lst = self.NETS_DICT[nets]
-        return [SchematicNode(x) for x in lst]
-
-    def get_nets_which_contain(self, text):
-        return sorted([x for x in self.NETS_DICT if text in x])

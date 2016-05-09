@@ -137,14 +137,14 @@ class SchematicSymbol(SchematicComponent):
 class SchematicPath(SpecialSymbols, SpecialNets):
     """consist of a collection of links"""
 
-    def __init__(self, links: list, analyzer_obj):
+    def __init__(self, links: list):
+        self.logger = logging.getLogger(__name__)
         SpecialSymbols.__init__(self)
         SpecialNets.__init__(self)
         self.links = self.__sort_links(links)
         # self.links = links
         self.origin = self.links[0].tail
-        self.subset = defaultdict(list)
-        self.az = analyzer_obj
+        # self.subset = defaultdict(list)
 
         self.iter_devices_at_links = (node for link in self.links for node in link.nodes
                                       if node.is_device)
@@ -179,15 +179,145 @@ class SchematicPath(SpecialSymbols, SpecialNets):
                 head_record.append(x.head.name)
         return sorted_links
 
-    def populate_subset(self):
-        # az = PathAnalyzer()
-        for channel in self.iter_testers_at_links:
-            self.subset[channel.name].extend(self.az.create_subset_path(self, channel.name))
+    def create_subset_path(self, the_nets):
+        # self.logger.setLevel(logging.INFO)
+        all_nets_in_path = [link.edge.name for link in self.links]
+        occurrence = all_nets_in_path.count(the_nets)
 
-        for plane in self.special_nets:
-            to_plane = self.az.create_subset_path(self, plane)
-            if to_plane:
-                self.subset[plane].extend(to_plane)
+        all_path_to_plane = []
+        if occurrence == 0:
+            self.logger.debug('create_subset_path: No path from %s to %s', self.origin.name, the_nets)
+        else:
+            matches_indexes = (i for i, n in enumerate(all_nets_in_path) if n == the_nets)
+            for index in matches_indexes:
+                self.logger.debug('create_subset_path: from %s to %s, starting index [%s]',
+                                  self.origin.name, the_nets, index)
+                path_to_plane = []
+                z = self.links[index].head.name
+                # TODO try reversed
+                for i in range(index, -1, -1):
+                    link = self.links[i]
+                    if link.head.name == z:
+                        # self.logger.debug('create_subset_path: recording: [%s] %s', i, link)
+                        path_to_plane.insert(0, link)
+                        z = link.tail.name
+                    else:
+                        # self.logger.debug('create_subset_path: ignoring: [%s] %s', i, link)
+                        pass
+
+                self.logger.debug('create_subset_path: saving with path length: %s', len(path_to_plane))
+                all_path_to_plane.append(SchematicPath(path_to_plane))
+
+        # self.logger.setLevel(logging.DEBUG)
+        return all_path_to_plane
+
+    def ascii_tree(self):
+        # TODO: separate this to another class
+
+        def get_val_at_nested_key(d: dict, key, is_root=True, found_vals=list):
+            if is_root:
+                found_vals = []
+
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    found_vals = get_val_at_nested_key(v, key, is_root=False, found_vals=found_vals)
+                else:
+                    pass
+
+                if k == key:
+                    found_vals.append(v)
+                    print('{0}: {1}'.format(k, v))
+
+            if is_root:
+                return found_vals
+
+        def set_key_at_branch(d: dict, branch, key, val=None, is_root=True, found=False):
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    found = set_key_at_branch(v, branch, key, is_root=False, found=found)
+                else:
+                    pass
+
+                if k == branch:
+                    if d[branch]:
+                        d[branch].update({key: val})
+                    else:
+                        d[branch] = {key: val}
+                    found = True
+
+            if is_root:
+                if not found:
+                    d.update({key: val})
+                return d
+            else:
+                return found
+
+        def asciify(d: dict, is_root=True, al=list, lvl=0):
+            if is_root:
+                al = []
+                lvl = 0
+
+            if d:
+                for k, v in d.items():
+                    il = []
+                    for i in range(lvl):
+                        if i == lvl - 1:
+                            il.append('`-- ')
+                        else:
+                            il.append('    ')
+                    il.append(k)
+                    al.append(il)
+
+                    if d[k]:
+                        lvl += 1
+                        al = asciify(d[k], is_root=False, al=al, lvl=lvl)
+                        lvl -= 1
+
+            if is_root:
+                empt_fill = '    '
+                vert_fill = '|   '
+                end__fill = '`-- '
+                plus_fill = '+-- '
+
+                replacement = set()
+                for each_line in reversed(al):
+
+                    to_remove = []
+                    for index in replacement:
+                        if each_line[index] == empt_fill:
+                            each_line[index] = vert_fill
+                        elif each_line[index] == end__fill:
+                            each_line[index] = plus_fill
+                        else:
+                            to_remove.append(index)
+
+                    while to_remove:
+                        replacement.discard(to_remove.pop())
+
+                    for i, e in enumerate(each_line):
+                        if e == end__fill:
+                            replacement.add(i)
+
+                sl = [''.join(x) for x in al]
+
+                return sl
+            else:
+                return al
+
+        nested_dict = {}
+        for link in self.links:
+            nested_dict = set_key_at_branch(nested_dict, branch=link.tail.short_name, key=link.head.short_name)
+
+        return asciify({self.origin.short_name: nested_dict})
+
+    # def populate_subset(self):
+    #     for channel in self.iter_testers_at_links:
+    #         self.subset[channel.name].extend(self.create_subset_path(channel.name))
+    #
+    #     for plane in self.special_nets:
+    #         to_plane = self.create_subset_path(plane)
+    #         if to_plane:
+    #             self.subset[plane].extend(to_plane)
 
 
 class SchematicLink(SpecialSymbols, SpecialNets):
@@ -279,18 +409,25 @@ class SchematicEdge(SpecialNets):
         # TODO wrap this to board class or other function
         if nets in self.special_nets:
             self.masked_name = nets
+
         elif self.pat_hidden.search(nets):
             self.masked_name = self.pat_hidden.sub(r'hidden', nets)
+
         elif self.pat_site.search(nets):
             self.masked_name = self.pat_site.sub(r'S##\1', nets)
+
         elif self.pat_udb.search(nets):
             self.masked_name = self.pat_udb.sub(r'UDB##', nets)
+
         elif self.pat_uvi.search(nets):
             self.masked_name = self.pat_uvi.sub(r'J##_UVI80_##\1', nets)
+
         elif self.pat_hsd.search(nets):
             self.masked_name = self.pat_hsd.sub(r'J##_HSD_###', nets)
+
         elif self.pat_common.search(nets):
             self.masked_name = self.pat_common.sub(r'\1', nets)
+
         else:
             self.masked_name = nets
             self.logger.warn('unknown nets type: %s', nets)
