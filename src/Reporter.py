@@ -146,6 +146,11 @@ class Reporter:
         nut = oo.get_nodes_from_symbol_and_pin(symbol, pin_name)
         this_path = oo.explore(nut)
 
+        pin_name = this_path.origin.pin_name
+        symbol = this_path.origin.symbol
+        comp_type = oo.SYMBOL_DICT[symbol].type
+        print_with_header('title', [pin_name, symbol, comp_type])
+
         ms_ok = {}
         az.compile(this_path)
         for s in oo.iter_all_device_symbols():
@@ -161,7 +166,6 @@ class Reporter:
         print_with_header('links', out_str)
         print_with_header('multi site ok', sorted(ms_ok.items(),
                                                   key=lambda x: int(re.match('[a-zA-Z]+(\d+)', x[0]).group(1))))
-        print_with_header('origin', [this_path.origin.name])
         print_with_header('device pins', [x.name for x in this_path.iter_devices_at_links])
         print_with_header('channel assignments', sorted(testers))
 

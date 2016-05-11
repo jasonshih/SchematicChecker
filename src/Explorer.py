@@ -139,31 +139,36 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
     def __heads_to_tails(self, heads):
         all_linked_ports = []
         for head in heads:
-            (symbol, pin_num, pin_name) = head.tuple
+            (t, u, v) = head.tuple
 
-            if not self.SYMBOL_DICT[symbol].dni:
-                if self.SYMBOL_DICT[head.symbol].links:
-                    # internal connections within symbol
-                    states = self.SYMBOL_DICT[head.symbol].links.keys()
-                    for state in states:
-                        linked_nodes = self.SYMBOL_DICT[symbol].links[state][(pin_num, pin_name)]
-                        if linked_nodes:
-                            # TODO: future improvement to have multiple linked nodes. VERY UGLY.
-                            linked_node = SchematicNode((symbol, linked_nodes[0], linked_nodes[1]))
-                            if linked_node.name not in self.seen_nodes:
-                                linked_nodes = [linked_node]
-                                # self.__reshuffle_links(head.name)
-                                self.__record_link(head, SchematicEdge(state), linked_nodes,
-                                                   self.lvl + 1, internal_link=True)
-                                all_linked_ports.extend(linked_nodes)
-                else:
-                    for lnk in reversed(self.explored_links):
-                        if lnk.head.name == head.name:
-                            lnk.head.is_terminal = True
-                            break
+            if self.SYMBOL_DICT[t].dni:
+                break
+
+                # # TODO: also should set is_terminal = True
+                # self.logger.debug('__heads_to_tails: DNI symbol %s', t)
+
+            if self.SYMBOL_DICT[head.symbol].links:
+                # internal connections within symbol
+                states = self.SYMBOL_DICT[head.symbol].links.keys()
+                for state in states:
+                    linked_res = self.SYMBOL_DICT[t].links[state][(u, v)]
+                    if not linked_res:
+                        pass
+                    elif isinstance(linked_res, list):
+                        pass
+                    else:
+                        linked_node = SchematicNode((t, linked_res[0], linked_res[1]))
+                        if linked_node.name not in self.seen_nodes:
+                            linked = [linked_node]
+                            self.__record_link(head, SchematicEdge(state), linked,
+                                               self.lvl + 1, internal_link=True)
+                            all_linked_ports.extend(linked)
+
             else:
-                # TODO: also should set is_terminal = True
-                self.logger.debug('__heads_to_tails: DNI symbol %s', symbol)
+                for lnk in reversed(self.explored_links):
+                    if lnk.head.name == head.name:
+                        lnk.head.is_terminal = True
+                        break
 
         return all_linked_ports
 
