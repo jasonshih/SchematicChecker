@@ -5,7 +5,7 @@ import logging
 from itertools import chain
 
 
-class SourceReader(SpecialNets, SpecialSymbols):
+class SourceReader(SpecialNets, SpecialSymbols, LOG):
 
     def __init__(self):
         SpecialNets.__init__(self)
@@ -39,7 +39,7 @@ class SourceReader(SpecialNets, SpecialSymbols):
                         self.SYMBOL_DICT[oo.id].dni = True
 
                     if oo.unknown_links:
-                        self.logger.warn('unknown comp_type prop: ' + this_line)
+                        self.logger.warn('unknown comp_type prop: {}, {}'.format(oo.id, this_line))
 
                 if "Explicit Pin:" in this_line:
                     cleaned_line = this_line.strip().replace('\'', '').split(' ')

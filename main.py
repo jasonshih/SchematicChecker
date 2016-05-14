@@ -2,31 +2,40 @@ from src.Explorer import Explorer
 from src.Reporter import Reporter
 from pathlib import Path
 import logging
+from itertools import product
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR)     # DEBUG INFO WARN ERROR
     logger = logging.getLogger(__name__)
 
-    oo = Explorer()
     report = Reporter()
     folder = Path('/Users/cahyo/Documents/data/schem_checker')
-    inp_file = folder / 'P1495_sample.xlsx'
-    oo.read_xlsx(str(inp_file))
+
+    # probe_card = folder / 'P1495 List of component.xlsx'
+    # p1495 = Explorer()
+    # p1495.read_xlsx(str(probe_card))
+
+    pib = folder / 'NN212 List of components.xlsx'
+    nn212 = Explorer()
+    nn212.connector_symbols = ['P' + str(t) for t in range(1, 33)]
+    nn212.connector_symbols.extend(['SC{}'.format(u) for u in range(20)])
+    nn212.device_symbols = ['J{}SW{}'.format(x, y) for x, y in product(range(1, 31), range(1, 5))]
+    nn212.read_xlsx(str(pib))
 
     # ------------------- #
     # === SEARCH PAGE === #
     # ------------------- #
-    search_result = oo.search_pins_or_nets('VIN_GR4')
+    # search_result = p1495.search_pins_or_nets('VIN_GR4')
 
-    print(search_result['pins'])
-    for n in search_result['nets']:
-        nodes = oo.get_nodes_from_nets(n.name)
-        print('{}: {}'.format(n, nodes))
-    print('\v')
+    # print(search_result['pins'])
+    # for n in search_result['nets']:
+    #     nodes = p1495.get_nodes_from_nets(n.name)
+    #     print('{}: {}'.format(n, nodes))
+    # print('\v')
 
-    report.view_pin_details(oo, 'X0', 'GPIO7')
-    print('\v')
+    # report.view_pin_details(p1495, 'X0', 'GPIO7')
+    # print('\v')
 
     # ----------------------------- #
     # === TOP LEVEL REPORT PAGE === #

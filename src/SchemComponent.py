@@ -127,8 +127,8 @@ class SchematicSymbol(SchematicComponent):
         # self.logger.debug('comp type: %s', comp_type)
         SchematicComponent.__init__(self, comp_type)
         self.id = ''
-        self.state = []
         self.dni = False
+        self.schematic = ''
 
     def __repr__(self):
         return '<symbol> ' + self.id
