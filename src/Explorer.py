@@ -58,13 +58,14 @@ class SourceReader(SpecialNets, SpecialSymbols, LOG):
 
 class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
 
-    def __init__(self):
+    def __init__(self, connected_to=None):
         self.logger = logging.getLogger(__name__)
         SourceReader.__init__(self)
         SpecialSymbols.__init__(self)
         self.seen_nodes = []
         self.explored_links = []
         self.lvl = 0
+        self.extension = connected_to
 
     def explore(self, tail, level=0):
         # main function call for this class. finding path in this format:
@@ -128,13 +129,13 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
         return SchematicEdge(self.SYMBOL_DICT[t].pins[(u, v)])
 
     def __edge_to_heads(self, edge):
-        all_edges = self.NETS_DICT[edge.name]
+        node_tuples = self.NETS_DICT[edge.name]
         if edge.name in ['unconnected']:
-            return [SchematicNode(x) for x in all_edges if '[WARNING]' in x]
+            return [SchematicNode(x) for x in node_tuples if '[WARNING]' in x]
         elif edge.name in self.special_nets:
-            return [SchematicNode(x) for x in all_edges if x[0].startswith('[')]
+            return [SchematicNode(x) for x in node_tuples if x[0].startswith('[')]
         else:
-            return [SchematicNode(x) for x in all_edges if SchematicNode(x).name not in self.seen_nodes]
+            return [SchematicNode(x) for x in node_tuples if SchematicNode(x).name not in self.seen_nodes]
 
     def __heads_to_tails(self, heads):
         all_linked_ports = []
@@ -142,27 +143,30 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
             (t, u, v) = head.tuple
 
             if self.SYMBOL_DICT[t].dni:
-                break
-
-                # # TODO: also should set is_terminal = True
+                for lnk in reversed(self.explored_links):
+                    if lnk.head.name == head.name:
+                        lnk.head.is_terminal = True
+                self.__record_link(head, SchematicEdge('[DNI]'), [SchematicNode(self.NETS_DICT['[DNI]'][0])],
+                                   self.lvl + 1, internal_link=True)
                 # self.logger.debug('__heads_to_tails: DNI symbol %s', t)
+                break
 
             if self.SYMBOL_DICT[head.symbol].links:
                 # internal connections within symbol
                 states = self.SYMBOL_DICT[head.symbol].links.keys()
                 for state in states:
                     linked_res = self.SYMBOL_DICT[t].links[state][(u, v)]
-                    if not linked_res:
+                    if isinstance(linked_res, list):
                         pass
-                    elif isinstance(linked_res, list):
-                        pass
-                    else:
+                    elif isinstance(linked_res, tuple):
                         linked_node = SchematicNode((t, linked_res[0], linked_res[1]))
                         if linked_node.name not in self.seen_nodes:
-                            linked = [linked_node]
-                            self.__record_link(head, SchematicEdge(state), linked,
+                            self.__record_link(head, SchematicEdge(state), [linked_node],
                                                self.lvl + 1, internal_link=True)
-                            all_linked_ports.extend(linked)
+                            all_linked_ports.extend([linked_node])
+                    else:
+                        self.logger.error('linked_res err {} ({}), {}/{}, type: {}'.format(t, state, u, v,
+                                                                                           self.SYMBOL_DICT[t].type))
 
             else:
                 for lnk in reversed(self.explored_links):
@@ -173,7 +177,7 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
         return all_linked_ports
 
     def __filter_out_terminal_nodes(self, heads):
-        return [head for head in heads if head.symbol not in self.terminal_symbols]
+        return [head for head in heads if head.symbol not in list(chain(self.terminal_symbols, self.plane_symbols))]
 
     def __filter_out_previous_nodes(self, heads):
         return [x for x in heads if x.name not in self.seen_nodes]
