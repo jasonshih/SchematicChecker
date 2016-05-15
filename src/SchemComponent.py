@@ -29,7 +29,7 @@ class SpecialSymbols:
         self.device_symbols = ['X' + str(t) for t in range(16)]  # 16 for 16 sites
         self.tester_symbols = ['J' + str(t) for t in [4, 6, 8, 10, 12, 18, 20, 22, 0, 14, 16, 2]]
         self.plane_symbols = ['[AGND]', '[+5V]', '[-5V]', '[P5V]', '[N5V]', '[P15V]', '[N15V]', '[+5V_RLY]']
-        self.terminal_symbols = ['[WARNING]', '[OTHER_SITES]', '[DNI]']  # '[device]', '[tester]'
+        self.terminal_symbols = ['[WARNING]', '[OTHER_SITES]']  # '[device]', '[tester]'
 
         # self.uvi80 = [BoardUVI80(str(x)) for x in [4, 6, 8, 10, 12, 18, 20, 22]]
         # self.upin1600 = [BoardUPIN1600(str(x)) for x in [0, 14, 16]]
@@ -48,7 +48,7 @@ class SpecialNets:
             'N5V': [('[N5V]', '00', 'plane')],
             'P15V': [('[P15V]', '00', 'plane')],
             'N15V': [('[N15V]', '00', 'plane')],
-            '[DNI]': [('[DNI]', '00', 'terminal')],
+            '[TERMINAL]': [('[WARNING]', '00', 'terminal')],
             'unconnected': [('[WARNING]', '00', 'terminal')],
             'J2_DC30_10F': [('[OTHER_SITES]', '00', 'terminal')],
             'J2_DC30_10S': [('[OTHER_SITES]', '00', 'terminal')],
@@ -62,11 +62,12 @@ class SchematicComponent:
     component_links = {}
     known_comp_types = []
     unknown_comp_types = set()
+    # default_comp_link_file = '../config/component_links.json'
 
     def __init__(self, comp_type=None):
         pin_pat = re.compile('\((\w+)[,\s]+(\w+)\)')
         self.logger = logging.getLogger(__name__)
-        self.type = ''
+        self.type = comp_type
         self.links = defaultdict(dict)
         self.pins = {}
         self.unknown_links = False
@@ -98,21 +99,22 @@ class SchematicComponent:
                             else:
                                 linked = None
 
-                            self.links[state].update({linker: linked})
+                            self.links[state][linker] = linked
 
                     # TODO: ugly. should be able to automatically detect list of pins.
                     if c['name'] in ['plane', 'terminal']:
-                        self.pins.update({
-                            ('00', 'plane'): None
-                        })
+                        self.pins[('00', 'plane')] = None
+
         else:
             if comp_type not in self.unknown_comp_types:
-                self.logger.warn('unknown comp_type: %s' % comp_type)
+                if not comp_type.startswith('['):
+                    self.logger.warn('unknown comp_type: %s' % comp_type)
                 self.unknown_comp_types.add(comp_type)
                 self.unknown_links = True
 
     @classmethod
-    def import_standard_link(cls, input_json='../config/component_links.json'):
+    # def import_standard_link(cls, input_json='../config/component_links.json'):
+    def import_standard_link(cls, input_json='/Users/cahyo/Dropbox/programming/python/SchematicChecker/config/component_links.json'):
         with open(input_json, encoding='utf-8') as json_file:
             cls.component_links = json.loads(json_file.read())
 
@@ -123,13 +125,19 @@ class SchematicComponent:
 
 class SchematicSymbol(SchematicComponent):
 
-    def __init__(self, comp_type=None):
+    def __init__(self, comp_type, symbol):
         self.logger = logging.getLogger(__name__)
         # self.logger.debug('comp type: %s', comp_type)
         SchematicComponent.__init__(self, comp_type)
-        self.id = ''
-        self.dni = False
+        self.id = symbol
+        self.__dni = False
         self.schematic = ''
+
+    def set_dni(self):
+        self.__dni = True
+
+    def is_dni(self):
+        return self.__dni
 
     def __repr__(self):
         return '<symbol> ' + self.id
@@ -241,14 +249,14 @@ class SchematicPath(SpecialSymbols, SpecialNets):
 
                 if k == branch:
                     if d[branch]:
-                        d[branch].update({key: val})
+                        d[branch][key] = val
                     else:
                         d[branch] = {key: val}
                     found = True
 
             if is_root:
                 if not found:
-                    d.update({key: val})
+                    d[key] = val
                 return d
             else:
                 return found
@@ -354,9 +362,9 @@ class SchematicNode(SpecialSymbols):
         (self.symbol, self.pin_number, self.pin_name) = symbol_and_pins
         self.tuple = symbol_and_pins
         self.name = '|'.join(symbol_and_pins)
+        self.dni = False
         self.short_name = self.symbol + ' @' + self.pin_name
         self.masked_name = self.name
-        self.dni = False
         self.is_device = True if self.symbol in self.device_symbols else False
         self.is_active = False
         self.is_origin = False
@@ -367,6 +375,10 @@ class SchematicNode(SpecialSymbols):
             self.masked_name = self.pat_symbol_conn.sub('J##|##|IO##', self.name)
         else:
             self.masked_name = self.pat_symbol.sub(self.__replace_last_symbol_char, self.name)
+
+    def set_dni(self):
+        self.dni = True
+        self.short_name = self.symbol + ' @' + self.pin_name + ' (DNI)'
 
     @staticmethod
     def __replace_last_symbol_char(match_obj):

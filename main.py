@@ -6,7 +6,7 @@ from itertools import product
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)     # DEBUG INFO WARN ERROR
+    logging.basicConfig(level=logging.ERROR)     # DEBUG INFO WARN ERROR
     logger = logging.getLogger(__name__)
 
     report = Reporter()
@@ -34,10 +34,14 @@ if __name__ == "__main__":
     #     print('{}: {}'.format(n, nodes))
     # print('\v')
 
-    report.view_pin_details(p1495, 'X0', 'GPIO7')
+    # report.view_pin_details(p1495, 'X0', 'GPIO7')
+    # print('\v')
+
+    # report.view_pin_details(p1495, 'X0', 'VFB_S2')
+    report.view_pin_details(p1495, 'X0', 'VIN_GR4')
     print('\v')
 
-    report.view_pin_details(p1495, 'X0', 'VIN_GR4')
+    report.view_pin_details(p1495, 'X0', 'MPP1')
     print('\v')
     # ----------------------------- #
     # === TOP LEVEL REPORT PAGE === #

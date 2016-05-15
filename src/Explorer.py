@@ -14,7 +14,7 @@ class SourceReader(SpecialNets, SpecialSymbols, LOG):
 
         self.SYMBOL_DICT = {}
         for s in chain(self.plane_symbols, self.terminal_symbols):
-            self.SYMBOL_DICT.update({s: SchematicSymbol(s)})
+            self.SYMBOL_DICT[s] = SchematicSymbol('[CUSTOM]', s)
 
         self.NETS_DICT = defaultdict(list)
         self.NETS_DICT.update(self.special_nets)
@@ -30,13 +30,12 @@ class SourceReader(SpecialNets, SpecialSymbols, LOG):
                 if "COMP:" in this_line:
                     cleaned_line = this_line.replace('\'', '').split(' ')
                     if len(cleaned_line) == 3:
-                        oo = SchematicSymbol(cleaned_line[1])
-                        [_, oo.type, oo.id] = cleaned_line
-                        self.SYMBOL_DICT.update({oo.id: oo})
+                        oo = SchematicSymbol(cleaned_line[1], cleaned_line[2])
+                        self.SYMBOL_DICT[oo.id] = oo
 
                 if "Property:" in this_line:
                     if 'Part List Exclude=DNI' in this_line:
-                        self.SYMBOL_DICT[oo.id].dni = True
+                        self.SYMBOL_DICT[oo.id].set_dni()
 
                     if oo.unknown_links:
                         self.logger.warn('unknown comp_type prop: {}, {}'.format(oo.id, this_line))
@@ -45,7 +44,7 @@ class SourceReader(SpecialNets, SpecialSymbols, LOG):
                     cleaned_line = this_line.strip().replace('\'', '').split(' ')
                     if len(cleaned_line) == 5:
                         [_, _, pin_num, pin_name, nets] = cleaned_line
-                        self.SYMBOL_DICT[oo.id].pins.update({(pin_num, pin_name): nets})
+                        self.SYMBOL_DICT[oo.id].pins[(pin_num, pin_name)] = nets
                         self.NETS_DICT[nets].append((oo.id, pin_num, pin_name))
 
                         if oo.unknown_links \
@@ -142,16 +141,13 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
         for head in heads:
             (t, u, v) = head.tuple
 
-            if self.SYMBOL_DICT[t].dni:
+            if self.SYMBOL_DICT[t].is_dni():
+                head.set_dni()
                 for lnk in reversed(self.explored_links):
                     if lnk.head.name == head.name:
                         lnk.head.is_terminal = True
-                self.__record_link(head, SchematicEdge('[DNI]'), [SchematicNode(self.NETS_DICT['[DNI]'][0])],
-                                   self.lvl + 1, internal_link=True)
-                # self.logger.debug('__heads_to_tails: DNI symbol %s', t)
-                break
 
-            if self.SYMBOL_DICT[head.symbol].links:
+            elif self.SYMBOL_DICT[head.symbol].links:
                 # internal connections within symbol
                 states = self.SYMBOL_DICT[head.symbol].links.keys()
                 for state in states:
@@ -165,14 +161,16 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
                                                self.lvl + 1, internal_link=True)
                             all_linked_ports.extend([linked_node])
                     else:
-                        self.logger.error('linked_res err {} ({}), {}/{}, type: {}'.format(t, state, u, v,
-                                                                                           self.SYMBOL_DICT[t].type))
+                        self.logger.warn('linked_res err {} ({}), {}/{}, type: {}'.format(t, state, u, v,
+                                                                                          self.SYMBOL_DICT[t].type))
 
             else:
                 for lnk in reversed(self.explored_links):
                     if lnk.head.name == head.name:
                         lnk.head.is_terminal = True
-                        break
+                # self.__record_link(head, SchematicEdge('[TERMINAL]'),
+                #                    [SchematicNode(self.NETS_DICT['[TERMINAL]'][0])],
+                #                    self.lvl + 1, internal_link=True)
 
         return all_linked_ports
 
