@@ -21,6 +21,7 @@ def test_node_name_when_dni(n):
     assert n.dni
     assert 'DNI' in n.short_name
 
+
 def test_create_symbol():
     s = SchematicSymbol('RES_SHORTED_0201', 'R01')
     assert 'RES_SHORTED_0201' == s.type
