@@ -161,8 +161,14 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
                                                self.lvl + 1, internal_link=True)
                             all_linked_ports.extend([linked_node])
                     else:
-                        self.logger.warn('linked_res err {} ({}), {}/{}, type: {}'.format(t, state, u, v,
-                                                                                          self.SYMBOL_DICT[t].type))
+                        output_msg = 'linked_res nf {} ({}), {}/{}, type: {}'
+                        self.logger.info(output_msg.format(t, state, u, v, self.SYMBOL_DICT[t].type))
+
+            elif head.symbol in self.connector_symbols and self.extension:
+                # TODO continue this
+                t, u, v = head.tuple
+                ext_tail = SchematicNode((t.replace('J', 'P'), u, v))
+                ext = self.extension.explore(ext_tail)
 
             else:
                 for lnk in reversed(self.explored_links):

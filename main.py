@@ -12,17 +12,16 @@ if __name__ == "__main__":
     report = Reporter()
     folder = Path('/Users/cahyo/Documents/data/schem_checker')
 
+    pib = folder / 'NN212 List of components.xlsx'
+    nn212 = Explorer()
+    nn212.connector_symbols = ['P' + str(t) for t in range(1, 33)]
+    nn212.connector_symbols.extend(['SC{}'.format(u) for u in range(20)])
+    nn212.device_symbols = ['J{}SW{}'.format(x, y) for x, y in product(range(1, 31), range(1, 5))]
+    nn212.read_xlsx(str(pib))
+
     probe_card = folder / 'P1495 List of component.xlsx'
-    p1495 = Explorer()
+    p1495 = Explorer(connected_to=nn212)
     p1495.read_xlsx(str(probe_card))
-
-    # pib = folder / 'NN212 List of components.xlsx'
-    # nn212 = Explorer()
-    # nn212.connector_symbols = ['P' + str(t) for t in range(1, 33)]
-    # nn212.connector_symbols.extend(['SC{}'.format(u) for u in range(20)])
-    # nn212.device_symbols = ['J{}SW{}'.format(x, y) for x, y in product(range(1, 31), range(1, 5))]
-    # nn212.read_xlsx(str(pib))
-
     # ------------------- #
     # === SEARCH PAGE === #
     # ------------------- #

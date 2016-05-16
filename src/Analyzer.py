@@ -85,11 +85,17 @@ class ExplorerUtilities:
     def iter_all_device_symbols(self):
         return sorted((x for x in self.SYMBOL_DICT.keys() if x in self.device_symbols))
 
+    def search_symbol(self, search_str):
+        return [x for x in self.SYMBOL_DICT if search_str in x]
+
     def search_pins_or_nets(self, search_str, symbol='X0'):
         pins = sorted([SchematicNode((symbol, p[0], p[1])) for p in self.SYMBOL_DICT[symbol].pins if search_str in p[1]],
                       key=lambda x: x.name)
         nets = sorted([SchematicEdge(n) for n in self.NETS_DICT if search_str in n], key=lambda x: x.name)
         return {'pins': pins, 'nets': nets}
+
+    def search_pin_number(self, search_str, symbol='X0'):
+        return [SchematicNode((symbol, p[0], p[1])) for p in self.SYMBOL_DICT[symbol].pins if search_str in p[0]]
 
     def get_nodes_from_symbol_and_nets(self, symbol, nets):
         return sorted([SchematicNode(x) for x in self.NETS_DICT[nets] if x[0] in symbol], key=lambda x: x.pin_name)

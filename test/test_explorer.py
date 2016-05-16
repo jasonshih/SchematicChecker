@@ -81,14 +81,14 @@ class TestSimpleLink:
 
         self.p = self.e.explore(self.tail)
 
-        print('\v')
-        for i, link in enumerate(self.p.ascii_tree()):
-            print('[{num:03d}] '.format(num=i) + str(link))
-        print('\v')
-
-        for i, link in enumerate(sorted(self.p.links, key=lambda x: x.level)):
-            print('[{num:03d}] '.format(num=i) + str(link))
-        print('\v')
+        # print('\v')
+        # for i, link in enumerate(self.p.ascii_tree()):
+        #     print('[{num:03d}] '.format(num=i) + str(link))
+        # print('\v')
+        #
+        # for i, link in enumerate(sorted(self.p.links, key=lambda x: x.level)):
+        #     print('[{num:03d}] '.format(num=i) + str(link))
+        # print('\v')
 
     def test_explorer_vars(self):
         assert set(self.e.explored_links) == set()
