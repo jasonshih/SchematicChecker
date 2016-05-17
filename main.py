@@ -21,7 +21,9 @@ if __name__ == "__main__":
 
     probe_card = folder / 'P1495 List of component.xlsx'
     p1495 = Explorer(connected_to=nn212)
+    # p1495 = Explorer()
     p1495.read_xlsx(str(probe_card))
+
     # ------------------- #
     # === SEARCH PAGE === #
     # ------------------- #
@@ -33,10 +35,12 @@ if __name__ == "__main__":
     #     print('{}: {}'.format(n, nodes))
     # print('\v')
 
-    # report.view_pin_details(p1495, 'X0', 'GPIO7')
-    # print('\v')
+    report.view_pin_details(p1495, 'X0', 'GPIO7')
+    print('\v')
 
-    # report.view_pin_details(p1495, 'X0', 'VFB_S2')
+    report.view_pin_details(p1495, 'X0', 'VFB_S2')
+    print('\v')
+
     report.view_pin_details(p1495, 'X0', 'VIN_GR4')
     print('\v')
 

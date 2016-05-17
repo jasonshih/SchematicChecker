@@ -27,10 +27,19 @@ class SourceReader(SpecialNets, SpecialSymbols, LOG):
         for row in ws.rows:
             for cell in row:
                 this_line = str(cell.value)
+
+                if 'manufacturer Part number' in this_line or 'pin number' in this_line:
+                    continue
+
                 if "COMP:" in this_line:
-                    cleaned_line = this_line.replace('\'', '').split(' ')
-                    if len(cleaned_line) == 3:
-                        oo = SchematicSymbol(cleaned_line[1], cleaned_line[2])
+                    c_line = this_line.replace('\'', '').split(' ')
+
+                    assert len(c_line) == 3, 'unexpected number of data at line tagged with "COMP:"'
+
+                    if c_line[2] in self.SYMBOL_DICT:
+                        oo = self.SYMBOL_DICT[c_line[2]]
+                    else:
+                        oo = SchematicSymbol(c_line[1], c_line[2])
                         self.SYMBOL_DICT[oo.id] = oo
 
                 if "Property:" in this_line:
@@ -41,16 +50,17 @@ class SourceReader(SpecialNets, SpecialSymbols, LOG):
                         self.logger.warn('unknown comp_type prop: {}, {}'.format(oo.id, this_line))
 
                 if "Explicit Pin:" in this_line:
-                    cleaned_line = this_line.strip().replace('\'', '').split(' ')
-                    if len(cleaned_line) == 5:
-                        [_, _, pin_num, pin_name, nets] = cleaned_line
-                        self.SYMBOL_DICT[oo.id].pins[(pin_num, pin_name)] = nets
-                        self.NETS_DICT[nets].append((oo.id, pin_num, pin_name))
+                    c_line = this_line.strip().replace('\'', '').split(' ')
 
-                        if oo.unknown_links \
-                                and oo.id not in self.device_symbols \
-                                and oo.id not in self.connector_symbols:
-                            self.logger.warn('unknown comp_type pins: ' + this_line)
+                    assert len(c_line) == 5, 'unexpected number of data at line tagged with "Explicit Pin:"'
+                    [_, _, pin_num, pin_name, nets] = c_line
+                    self.SYMBOL_DICT[oo.id].pins[(pin_num, pin_name)] = nets
+                    self.NETS_DICT[nets].append((oo.id, pin_num, pin_name))
+
+                    if oo.unknown_links \
+                            and oo.id not in self.device_symbols \
+                            and oo.id not in self.connector_symbols:
+                        self.logger.warn('unknown comp_type pins: ' + this_line)
 
         self.logger.info('importing schematic symbol and nets database done!')
 
@@ -61,9 +71,9 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
         self.logger = logging.getLogger(__name__)
         SourceReader.__init__(self)
         SpecialSymbols.__init__(self)
-        self.seen_nodes = []
-        self.explored_links = []
-        self.lvl = 0
+        self._seen_nodes = []
+        self._explored_links = []
+        self._lvl = 0
         self.extension = connected_to
 
     def explore(self, tail, level=0):
@@ -72,9 +82,9 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
         self.logger.debug('-' * 60)
         self.logger.debug('exploring: %s, at level %s', tail.name, level)
 
-        self.lvl = level
+        self._lvl = level
         node_tail = tail.tuple
-        if self.lvl == 0:
+        if self._lvl == 0:
             self.__clear_nodes_and_links()
             tail.is_origin = True
 
@@ -82,45 +92,46 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
             raise ValueError
 
         # PROCESS FOR THIS ITERATION
-        self.seen_nodes.append(tail.name)
+        self._seen_nodes.append(tail.name)
         edge = self.__tail_to_edge(tail)
         heads = self.__edge_to_heads(edge)
         self.logger.debug('exploring: found edge %s', edge.name)
         self.logger.debug('exploring: found heads %s', str(heads))
 
         # RECORD LINK
-        self.__record_link(tail, edge, heads, self.lvl)
+        self.__tag_active_nodes(tail, heads)
+        self.__record_link(tail, edge, heads, self._lvl)
 
         # PROCESS FOR THE NEXT ITERATION
         # self.lvl += 1
         filtered_heads = self.__filter_out_previous_nodes(heads)  # A, B, C --> A, B
         raw_next_tails = self.__heads_to_tails(filtered_heads)  # A, B --> C, D, E
         next_tails = self.__filter_out_terminal_nodes(raw_next_tails)
-        self.seen_nodes.extend([str(x) for x in next_tails])
+        self._seen_nodes.extend([str(x) for x in next_tails])
 
         # RECURSIVE SEARCH
         if next_tails:
             self.logger.debug('explored: %s, found link to %s', tail.name, str(next_tails))
-            self.lvl += 2
+            self._lvl += 2
             for next_tail in next_tails:
                 # self.__reshuffle_links(next_tail.name)
-                self.explore(next_tail, self.lvl)
-            self.lvl -= 2
+                self.explore(next_tail, self._lvl)
+            self._lvl -= 2
         else:
             self.logger.debug('explored: %s, found no more link', tail.name)
             pass
 
         # TODO consider using partial functools
-        if self.lvl == 0:
-            return SchematicPath(self.explored_links)
+        if self._lvl == 0:
+            return SchematicPath(self._explored_links)
 
     def __reshuffle_links(self, tail_name):
-        for i, lnk in enumerate(self.explored_links):
+        for i, lnk in enumerate(self._explored_links):
             if lnk.head.name == tail_name:
                 self.logger.debug('reshuffle: found %s' % str(lnk))
-                self.logger.debug('reshuffle: from %s to %s' % (str(i), str(len(self.explored_links))))
-                leading_link = self.explored_links.pop(i)
-                self.explored_links.append(leading_link)
+                self.logger.debug('reshuffle: from %s to %s' % (str(i), str(len(self._explored_links))))
+                leading_link = self._explored_links.pop(i)
+                self._explored_links.append(leading_link)
                 break
 
     def __tail_to_edge(self, tail):
@@ -134,7 +145,7 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
         elif edge.name in self.special_nets:
             return [SchematicNode(x) for x in node_tuples if x[0].startswith('[')]
         else:
-            return [SchematicNode(x) for x in node_tuples if SchematicNode(x).name not in self.seen_nodes]
+            return [SchematicNode(x) for x in node_tuples if SchematicNode(x).name not in self._seen_nodes]
 
     def __heads_to_tails(self, heads):
         all_linked_ports = []
@@ -143,7 +154,7 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
 
             if self.SYMBOL_DICT[t].is_dni():
                 head.set_dni()
-                for lnk in reversed(self.explored_links):
+                for lnk in reversed(self._explored_links):
                     if lnk.head.name == head.name:
                         lnk.head.is_terminal = True
 
@@ -156,22 +167,28 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
                         pass
                     elif isinstance(linked_res, tuple):
                         linked_node = SchematicNode((t, linked_res[0], linked_res[1]))
-                        if linked_node.name not in self.seen_nodes:
-                            self.__record_link(head, SchematicEdge(state), [linked_node],
-                                               self.lvl + 1, internal_link=True)
+                        if linked_node.name not in self._seen_nodes:
+                            edge = SchematicEdge(state)
+                            self.__record_link(head, edge, [linked_node], self._lvl + 1, internal_link=True)
                             all_linked_ports.extend([linked_node])
                     else:
                         output_msg = 'linked_res nf {} ({}), {}/{}, type: {}'
                         self.logger.info(output_msg.format(t, state, u, v, self.SYMBOL_DICT[t].type))
 
             elif head.symbol in self.connector_symbols and self.extension:
-                # TODO continue this
-                t, u, v = head.tuple
-                ext_tail = SchematicNode((t.replace('J', 'P'), u, v))
-                ext = self.extension.explore(ext_tail)
+
+                ext_tail = SchematicNode((head.symbol.replace('J', 'P'), head.pin_number, head.pin_name))
+                edge = SchematicEdge('connector')
+                self.__record_link(head, edge, [ext_tail], self._lvl + 1, internal_link=True)
+
+                ext = self.extension.explore(ext_tail, 0)
+                for link in ext.links:
+                    link.level += self._lvl + 2
+
+                self._explored_links.extend(ext.links)
 
             else:
-                for lnk in reversed(self.explored_links):
+                for lnk in reversed(self._explored_links):
                     if lnk.head.name == head.name:
                         lnk.head.is_terminal = True
                 # self.__record_link(head, SchematicEdge('[TERMINAL]'),
@@ -180,20 +197,24 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
 
         return all_linked_ports
 
+    def __tag_active_nodes(self, tail, heads):
+        tail.is_active = True if self.SYMBOL_DICT[tail.symbol].is_active else False
+        for head in heads:
+            head.is_active = True if self.SYMBOL_DICT[head.symbol].is_active else False
+
     def __filter_out_terminal_nodes(self, heads):
         return [head for head in heads if head.symbol not in list(chain(self.terminal_symbols, self.plane_symbols))]
 
     def __filter_out_previous_nodes(self, heads):
-        return [x for x in heads if x.name not in self.seen_nodes]
+        return [x for x in heads if x.name not in self._seen_nodes]
 
-    def __record_link(self, tail, edge, heads, lvl, internal_link=False):
+    def __record_link(self, tail, edge, heads, lvl, internal_link=False, connector_link=False):
         for head in heads:
             link = SchematicLink((tail, head, edge, lvl))
-            link.tail.is_active = True if self.SYMBOL_DICT[tail.symbol].is_active else False
-            link.head.is_active = True if self.SYMBOL_DICT[head.symbol].is_active else False
             link.is_internal = internal_link
-            self.explored_links.append(link)
+            link.is_connector = connector_link
+            self._explored_links.append(link)
 
     def __clear_nodes_and_links(self):
-        self.seen_nodes = []
-        self.explored_links = []
+        self._seen_nodes = []
+        self._explored_links = []

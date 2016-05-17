@@ -314,7 +314,7 @@ class SchematicPath(SpecialSymbols, SpecialNets):
                 return al
 
         nested_dict = {}
-        for link in self.links:
+        for link in sorted(self.links, key=lambda x: x.level):
             nested_dict = set_key_at_branch(nested_dict, branch=link.tail.short_name, key=link.head.short_name)
 
         return asciify({self.origin.short_name: nested_dict})
@@ -343,6 +343,7 @@ class SchematicLink(SpecialSymbols, SpecialNets):
         self.tail, self.head, self.edge, self.level = link_level
         self.nodes = [self.tail, self.head]
         self.is_internal = False
+        self.is_connector = False
 
     def __repr__(self):
         return '<link>: ' + ' -- '.join([self.tail.name, self.edge.name, self.head.name])
