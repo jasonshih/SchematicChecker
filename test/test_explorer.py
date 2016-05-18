@@ -150,6 +150,93 @@ class TestSimpleLink:
                 assert lut.edge.channel.ch_map == '2.sense1'
                 assert lut.edge.channel.ch_type == 'DCVI'
                 assert lut.edge.channel.board_type == 'DC30'
-                assert lut.edge.masked_name == 'J2_DC30_1F'
+                assert lut.edge.masked_name == 'J##_DC30_##F'
             else:
                 assert not lut.edge.channel
+
+
+class TestLinksWithDNI:
+
+    def setup_class(self):
+
+        self.e = Explorer()
+
+        # RESISTOR
+        self.r1 = self.e.SYMBOL_DICT['R01'] = SchematicSymbol('RES_SHORTED_0201', 'R01')
+        self.r1.pins[('1', 'POS')] = 'AGND'
+        self.r1.pins[('2', 'NEG')] = '$0123'
+
+        # RESISTOR
+        self.r2 = self.e.SYMBOL_DICT['R02'] = SchematicSymbol('RES_SHORTED_0201', 'R01')
+        self.r2.pins[('1', 'POS')] = '$0123'
+        self.r2.pins[('2', 'NEG')] = '$1234'
+
+        # RESISTOR
+        self.r3 = self.e.SYMBOL_DICT['R03'] = SchematicSymbol('RES_SHORTED_0201', 'R01')
+        self.r3.pins[('1', 'POS')] = '$1234'
+        self.r3.pins[('2', 'NEG')] = 'AGND'
+
+        # NETS
+        self.e.NETS_DICT['$0123'] = [('R01', '2', 'NEG'), ('R02', '1', 'POS')]
+        self.e.NETS_DICT['$1234'] = [('R02', '2', 'NEG'), ('R03', '1', 'POS')]
+
+        self.tail = SchematicNode(('R01', '2', 'NEG'))
+
+        self.r2.set_dni()
+        self.p = self.e.explore(self.tail)
+
+        # print('\v')
+        # for i, link in enumerate(self.p.ascii_tree()):
+        #     print('[{num:03d}] '.format(num=i) + str(link))
+        # print('\v')
+        #
+        # for i, link in enumerate(sorted(self.p.links, key=lambda x: x.level)):
+        #     print('[{num:03d}] '.format(num=i) + str(link))
+        # print('\v')
+
+    def test_links_created(self):
+        assert hasattr(self.p, 'links')
+        assert isinstance(self.p.links, list)
+        assert isinstance(self.p.links[0], SchematicLink)
+
+    def test_links_length(self):
+        assert len(self.p.links) == 1
+
+    def test_links_levels(self):
+        lut = sorted(self.p.links, key=lambda x: x.level)
+        assert lut[0].level == 0
+
+    def test_links_terminals(self):
+        for lut in self.p.links:
+            if 'R02' in lut.head.name:
+                assert lut.head.is_terminal
+            else:
+                assert not lut.head.is_terminal
+
+    def test_links_internal(self):
+        for lut in self.p.links:
+            if lut.head.symbol == lut.tail.symbol:
+                assert lut.is_internal
+            else:
+                assert not lut.is_internal
+
+    def test_links_active_heads(self):
+        for lut in self.p.links:
+            assert not lut.head.is_active
+
+    def test_links_active_tails(self):
+        for lut in self.p.links:
+            assert not lut.tail.is_active
+
+    def test_links_tester_channel(self):
+        for lut in self.p.links:
+            assert not lut.edge.channel
+
+    def test_dni_tag_in_short_name(self):
+        assert 'DNI' in self.p.links[0].head.short_name
+
+    def test_r3_really_disconnected(self):
+        for lut in self.p.links:
+            assert 'R03' not in lut.head.symbol
+            assert 'R03' not in lut.tail.symbol
+

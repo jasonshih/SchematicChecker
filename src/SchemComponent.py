@@ -62,9 +62,8 @@ class SchematicComponent:
     component_links = {}
     known_comp_types = []
     unknown_comp_types = set()
-    # default_comp_link_file = '../config/component_links.json'
 
-    def __init__(self, comp_type=None):
+    def __init__(self, comp_type='', comp_link='../config/component_links.json'):
         pin_pat = re.compile('\((\w+)[,\s]+(\w+)\)')
         self.logger = logging.getLogger(__name__)
         self.type = comp_type
@@ -75,7 +74,7 @@ class SchematicComponent:
 
         if not self.component_links:
             self.logger.info('importing component link database')
-            self.import_standard_link()
+            self.import_standard_link('/Users/cahyo/Dropbox/programming/python/SchematicChecker/config/component_links.json')
             self.get_known_comp_types()
 
         if comp_type in self.known_comp_types:
@@ -114,7 +113,7 @@ class SchematicComponent:
 
     @classmethod
     # def import_standard_link(cls, input_json='../config/component_links.json'):
-    def import_standard_link(cls, input_json='/Users/cahyo/Dropbox/programming/python/SchematicChecker/config/component_links.json'):
+    def import_standard_link(cls, input_json):
         with open(input_json, encoding='utf-8') as json_file:
             cls.component_links = json.loads(json_file.read())
 
@@ -397,13 +396,13 @@ class SchematicNode(SpecialSymbols):
 
 class SchematicEdge(SpecialNets):
 
-    pat_hidden = re.compile('^\$(\w*)')
-    pat_site = re.compile('^S\d{1,2}(_\w*)', re.I)
-    pat_udb = re.compile('^UDB\d+')
+    _pat_hidden = re.compile('^\$(\w*)')
+    _pat_site = re.compile('^S\d{1,2}(_\w*)', re.I)
+    _pat_udb = re.compile('^UDB\d+')
     # TODO consider ^(J\d{1,2}_UVI80_\d{1,2})(\w*)
-    pat_uvi = re.compile('^J\d{1,2}_UVI80_\d{1,2}(\w*)', re.I)
-    pat_hsd = re.compile('^J\d{1,2}_HSD_\d{1,3}', re.I)
-    pat_common = re.compile('(\w*)\d*$')
+    # _pat_uvi = re.compile('^J\d{1,2}_UVI80_\d{1,2}(\w*)', re.I)
+    # _pat_hsd = re.compile('^J\d{1,2}_HSD_\d{1,3}', re.I)
+    _pat_common = re.compile('(\w*?)\d*$')
 
     def __init__(self, nets):
         self.logger = logging.getLogger(__name__)
@@ -414,7 +413,7 @@ class SchematicEdge(SpecialNets):
         self.is_plane = True if nets in self.special_nets else False
 
         # TODO wrap this to another function
-        board_classes = [BoardDC30, BoardUPIN1600, BoardUVI80]
+        board_classes = [BoardDC30, BoardUPIN1600, BoardUVI80, BoardUtility]
         for b in board_classes:
             if b.is_this(nets):
                 self.channel = b(nets)
@@ -424,23 +423,26 @@ class SchematicEdge(SpecialNets):
         if nets in self.special_nets:
             self.masked_name = nets
 
-        elif self.pat_hidden.search(nets):
-            self.masked_name = self.pat_hidden.sub(r'hidden', nets)
+        elif self._pat_hidden.search(nets):
+            self.masked_name = self._pat_hidden.sub(r'hidden', nets)
 
-        elif self.pat_site.search(nets):
-            self.masked_name = self.pat_site.sub(r'S##\1', nets)
+        elif self._pat_site.search(nets):
+            self.masked_name = self._pat_site.sub(r'S##\1', nets)
 
-        elif self.pat_udb.search(nets):
-            self.masked_name = self.pat_udb.sub(r'UDB##', nets)
+        elif self._pat_udb.search(nets):
+            self.masked_name = self._pat_udb.sub(r'UDB##', nets)
 
-        elif self.pat_uvi.search(nets):
-            self.masked_name = self.pat_uvi.sub(r'J##_UVI80_##\1', nets)
+        elif BoardUVI80.get_pat().match(nets):
+            self.masked_name = BoardUVI80.get_pat().sub(r'J##_UVI80_##\3', nets)
 
-        elif self.pat_hsd.search(nets):
-            self.masked_name = self.pat_hsd.sub(r'J##_HSD_###', nets)
+        elif BoardDC30.get_pat().match(nets):
+            self.masked_name = BoardDC30.get_pat().sub(r'J##_DC30_##\3', nets)
 
-        elif self.pat_common.search(nets):
-            self.masked_name = self.pat_common.sub(r'\1', nets)
+        elif BoardUPIN1600.get_pat().match(nets):
+            self.masked_name = BoardUPIN1600.get_pat().sub(r'J##_HSD_###', nets)
+
+        elif self._pat_common.search(nets):
+            self.masked_name = self._pat_common.sub(r'\1', nets)
 
         else:
             self.masked_name = nets
@@ -458,21 +460,32 @@ class TesterBoard:
     nets_pattern = re.compile('')
 
     def __init__(self, nets: str, ch_prefix: str):
+        self.board_num = 0
+        self.channel_num = 0
+        self.parse_board_and_channel_num(nets)
+
+        self.ch_map = str(self.board_num) + ch_prefix + str(self.channel_num)
+
+    def parse_board_and_channel_num(self, nets):
         self.board_num = int(self.nets_pattern.match(nets).group(1))
         self.channel_num = int(self.nets_pattern.match(nets).group(2))
-        self.ch_map = str(self.board_num) + ch_prefix + str(self.channel_num)
+
 
     @classmethod
     def is_this(cls, nets):
         return cls.nets_pattern.match(nets)
 
+    @classmethod
+    def get_pat(cls):
+        return cls.nets_pattern
+
 
 class BoardUVI80(TesterBoard):
 
-    board_type = 'DC-07'
+    board_type = 'DC07'
     ch_type = 'DCVI'
     # TODO consider (J\d{1,2}_UVI80_\d{1,2})(\w*)
-    nets_pattern = re.compile('^J(\d+)_UVI80_(\d+)\w*')
+    nets_pattern = re.compile('^J(\d+)_UVI80_(\d+)(\w*)')
 
     def __init__(self, nets):
         self.channel_prefix = '.sense'
@@ -496,7 +509,7 @@ class BoardDC30(TesterBoard):
 
     board_type = 'DC30'
     ch_type = 'DCVI'
-    nets_pattern = re.compile('^J(\d+)_DC30_(\d+)')
+    nets_pattern = re.compile('^J(\d+)_DC30_(\d+)(\w*)')
 
     def __init__(self, nets):
         self.channel_prefix = '.sense'
@@ -512,3 +525,7 @@ class BoardUtility(TesterBoard):
     def __init__(self, nets):
         self.channel_prefix = '.util'
         TesterBoard.__init__(self, nets, self.channel_prefix)
+
+    def parse_board_and_channel_num(self, nets):
+        self.board_num = 7
+        self.channel_num = int(self.nets_pattern.match(nets).group(1))
