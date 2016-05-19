@@ -74,20 +74,22 @@ def test_set_first_branch(n):
     n['branch'] = None
     assert n['branch'] is None
 
-    n[('branch', 'key1')] = None
-    assert n == {'branch': {'key1': None}}
+    n[('branch', 'key1')] = 'first'
+    assert n == {'branch': {'key1': 'first'}}
+    assert n['branch']['key1'] == 'first'
 
-    n[('branch', 'key2')] = None
-    assert n == {'branch': {'key1': None, 'key2': None}}
+    n[('branch', 'key2')] = 'val2'
+    assert n == {'branch': {'key1': 'first', 'key2': 'val2'}}
+    assert n['branch']['key2'] == 'val2'
 
-    n[('branch', 'key1')] = {}
-    assert n['branch'] == {'key1': {}, 'key2': None}
+    n[('branch', 'key1')] = 'val1'
+    assert n['branch']['key1'] == 'val1'
 
 
 def test_set_another_branch(n):
     n['brunch'] = None
     n[('brunch', 'key3')] = None
-    assert n['branch'] == {'key1': {}, 'key2': None}
+    assert n['branch'] == {'key1': 'val1', 'key2': 'val2'}
     assert n['brunch'] == {'key3': None}
 
 
@@ -96,6 +98,26 @@ def test_set_nested_branch(n):
     assert n['brunch'] == {'key3': {'deep_key': None}}
 
 
-def test_set_invalid_branch(n):
+def test_set_to_non_empty_branch(n):
+    n[('key3', 'val_err')] = 'invalid'
+
+    with raises(ValueError):
+        n[('val_err', 'raising_exc')] = None
+
+
+def test_set_to_invalid_branch(n):
     with raises(KeyError):
-        n[('non-exist', 'key3')] = None
+        n[('invalid_branch', 'key1')] = None
+
+
+def test_get_chained_branch(n):
+    assert n['brunch']['key3']['val_err'] == 'invalid'
+
+
+def test_get_just_the_last_one(n):
+    assert n['val_err'] == 'invalid'
+
+
+def test_set_just_the_last_one(n):
+    n['val_err'] = 'now_valid'
+    assert n['brunch']['key3']['val_err'] == 'now_valid'

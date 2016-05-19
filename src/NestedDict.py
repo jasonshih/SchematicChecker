@@ -10,23 +10,45 @@ class NestedDict(MutableMapping):
         self._root = root
 
     def __getitem__(self, item):
-        return self._val.__getitem__(item)
+
+        if item in self._val.keys():
+            return self._val.__getitem__(item)
+        else:
+            n = NestedDict(root=False)
+            result = None
+            for k, v in self._val.items():
+                if isinstance(v, dict):
+                    n._val = self._val[k]
+                    if n[item]:
+                        result = n[item]
+                        n._found = True
+                    self._found = self._found or n._found
+
+            if self._root:
+                if self._found:
+                    self._found = False
+                else:
+                    raise KeyError
+
+            return result
 
     def __setitem__(self, branch_key, value):
         if isinstance(branch_key, tuple):
             branch, key = branch_key
+            n = NestedDict(root=False)
             for k, v in self._val.items():
-
                 if v and isinstance(v, dict):
-                    n = NestedDict(root=False)
                     n._val = self._val[k]
                     n[branch_key] = value
-                    self._found = n._found if n._found else self._found
+                    self._found = self._found or n._found
 
                 if k == branch:
                     self._found = True
-                    if not self._val[branch]:
-                        self._val[branch] = {}
+                    if not isinstance(self._val[branch], dict):
+                        if self._val[branch]:
+                            raise ValueError('value of this key is not a logical False')
+                        else:
+                            self._val[branch] = {}  # replace None, [], 0 and False to {}
                     self._val[branch][key] = value
 
             if self._root:
@@ -35,9 +57,23 @@ class NestedDict(MutableMapping):
                 else:
                     raise KeyError
 
-        else:
+        elif branch_key in self._val.keys():
+            self._found = True
             self._val.__setitem__(branch_key, value)
-            return True
+
+        else:
+            n = NestedDict(root=False)
+            for k, v in self._val.items():
+                if v and isinstance(v, dict):
+                    n._val = self._val[k]
+                    n[branch_key] = value
+                    self._found = self._found or n._found
+
+            if self._root:
+                if self._found:
+                    self._found = False
+                else:
+                    self._val.__setitem__(branch_key, value)
 
     def __delitem__(self, key):
         self._val.__delitem__(key)
@@ -48,19 +84,5 @@ class NestedDict(MutableMapping):
     def __len__(self):
         return self._val.__len__()
 
-    # def get_val_at_nested_key(self, d: dict, key, is_root=True, found_vals=list):
-    #     if is_root:
-    #         found_vals = []
-    #
-    #     for k, v in d.items():
-    #         if isinstance(v, dict):
-    #             found_vals = self.get_val_at_nested_key(v, key, is_root=False, found_vals=found_vals)
-    #         else:
-    #             pass
-    #
-    #         if k == key:
-    #             found_vals.append(v)
-    #             print('{0}: {1}'.format(k, v))
-    #
-    #     if is_root:
-    #         return found_vals
+    def __repr__(self):
+        return str(self._val)
