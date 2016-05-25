@@ -121,7 +121,6 @@ class Explorer(SourceReader, SpecialSymbols, ExplorerUtilities):
             self.logger.debug('explored: %s, found no more link', tail.name)
             pass
 
-        # TODO consider using partial functools
         if self._lvl == 0:
             return SchematicPath(self._explored_links)
 

@@ -31,11 +31,6 @@ class SpecialSymbols:
         self.plane_symbols = ['[AGND]', '[+5V]', '[-5V]', '[P5V]', '[N5V]', '[P15V]', '[N15V]', '[+5V_RLY]']
         self.terminal_symbols = ['[WARNING]', '[OTHER_SITES]']  # '[device]', '[tester]'
 
-        # self.uvi80 = [BoardUVI80(str(x)) for x in [4, 6, 8, 10, 12, 18, 20, 22]]
-        # self.upin1600 = [BoardUPIN1600(str(x)) for x in [0, 14, 16]]
-        # self.dc30 = [BoardDC30(str(x)) for x in [2]]
-
-
 class SpecialNets:
 
     def __init__(self):
@@ -318,15 +313,6 @@ class SchematicPath(SpecialSymbols, SpecialNets):
 
         return asciify({self.origin.short_name: nested_dict})
 
-    # def populate_subset(self):
-    #     for channel in self.iter_testers_at_links:
-    #         self.subset[channel.name].extend(self.create_subset_path(channel.name))
-    #
-    #     for plane in self.special_nets:
-    #         to_plane = self.create_subset_path(plane)
-    #         if to_plane:
-    #             self.subset[plane].extend(to_plane)
-
 
 class SchematicLink(SpecialSymbols, SpecialNets):
     """consist of (node, node, edge)"""
@@ -398,10 +384,6 @@ class SchematicEdge(SpecialNets):
 
     _pat_hidden = re.compile('^\$(\w*)')
     _pat_site = re.compile('^S\d{1,2}(_\w*)', re.I)
-    _pat_udb = re.compile('^UDB\d+')
-    # TODO consider ^(J\d{1,2}_UVI80_\d{1,2})(\w*)
-    # _pat_uvi = re.compile('^J\d{1,2}_UVI80_\d{1,2}(\w*)', re.I)
-    # _pat_hsd = re.compile('^J\d{1,2}_HSD_\d{1,3}', re.I)
     _pat_common = re.compile('(\w*?)\d*$')
 
     def __init__(self, nets):
@@ -412,14 +394,12 @@ class SchematicEdge(SpecialNets):
         self.channel = None
         self.is_plane = True if nets in self.special_nets else False
 
-        # TODO wrap this to another function
         board_classes = [BoardDC30, BoardUPIN1600, BoardUVI80, BoardUtility]
         for b in board_classes:
             if b.is_this(nets):
                 self.channel = b(nets)
                 break
 
-        # TODO wrap this to board class or other function
         if nets in self.special_nets:
             self.masked_name = nets
 
@@ -429,8 +409,8 @@ class SchematicEdge(SpecialNets):
         elif self._pat_site.search(nets):
             self.masked_name = self._pat_site.sub(r'S##\1', nets)
 
-        elif self._pat_udb.search(nets):
-            self.masked_name = self._pat_udb.sub(r'UDB##', nets)
+        elif BoardUtility.get_pat().match(nets):
+            self.masked_name = BoardUtility.get_pat().sub(r'UDB##', nets)
 
         elif BoardUVI80.get_pat().match(nets):
             self.masked_name = BoardUVI80.get_pat().sub(r'J##_UVI80_##\3', nets)
@@ -484,8 +464,7 @@ class BoardUVI80(TesterBoard):
 
     board_type = 'DC07'
     ch_type = 'DCVI'
-    # TODO consider (J\d{1,2}_UVI80_\d{1,2})(\w*)
-    nets_pattern = re.compile('^J(\d+)_UVI80_(\d+)(\w*)')
+    nets_pattern = re.compile('^J(\d{1,2})_UVI80_(\d{1,2})(\w*)')
 
     def __init__(self, nets):
         self.channel_prefix = '.sense'
@@ -496,7 +475,7 @@ class BoardUPIN1600(TesterBoard):
 
     board_type = 'HSD'
     ch_type = 'I/O'
-    nets_pattern = re.compile('^J(\d+)_HSD_(\d+)')
+    nets_pattern = re.compile('^J(\d{1,2})_HSD_(\d{1,3})')
 
     def __init__(self, nets):
         self.channel_prefix = '.ch'
@@ -509,7 +488,7 @@ class BoardDC30(TesterBoard):
 
     board_type = 'DC30'
     ch_type = 'DCVI'
-    nets_pattern = re.compile('^J(\d+)_DC30_(\d+)(\w*)')
+    nets_pattern = re.compile('^J(\d{1,2})_DC30_(\d{1,2})(\w*)')
 
     def __init__(self, nets):
         self.channel_prefix = '.sense'
@@ -520,7 +499,7 @@ class BoardUtility(TesterBoard):
 
     board_type = 'Utility'
     ch_type = 'Utility'
-    nets_pattern = re.compile('^UDB(\d+)')
+    nets_pattern = re.compile('^UDB(\d{1,3})')
 
     def __init__(self, nets):
         self.channel_prefix = '.util'
