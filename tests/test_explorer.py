@@ -1,6 +1,6 @@
 from pytest import fixture, skip
-from src.Explorer import Explorer
-from src.SchemComponent import *
+from schematicAnalyzer.Explorer import Explorer
+from schematicAnalyzer.SchemComponent import *
 
 
 @fixture

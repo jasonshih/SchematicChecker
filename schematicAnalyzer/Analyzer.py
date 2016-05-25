@@ -1,4 +1,4 @@
-from src.SchemComponent import *
+from .SchemComponent import *
 from collections import defaultdict
 
 

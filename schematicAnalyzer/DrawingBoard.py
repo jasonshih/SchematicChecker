@@ -1,5 +1,5 @@
 import pygraphviz as p
-from src.SchemComponent import *
+from .SchemComponent import *
 import logging
 
 

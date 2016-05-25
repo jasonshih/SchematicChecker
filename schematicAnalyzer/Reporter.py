@@ -1,4 +1,4 @@
-from src.Analyzer import PathAnalyzer
+from .Analyzer import PathAnalyzer
 from collections import defaultdict
 from operator import itemgetter
 import logging

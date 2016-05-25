@@ -1,6 +1,6 @@
 from openpyxl import load_workbook
-from src.SchemComponent import *
-from src.Analyzer import ExplorerUtilities
+from .SchemComponent import *
+from .Analyzer import ExplorerUtilities
 import logging
 from itertools import chain
 

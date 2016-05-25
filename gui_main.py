@@ -3,8 +3,8 @@ import sys
 
 from PyQt4.QtGui import *
 
-from src.Explorer import *
-from src.Reporter import *
+from schematicAnalyzer.Explorer import *
+from schematicAnalyzer.Reporter import *
 from ui import mainwindow_ui
 
 

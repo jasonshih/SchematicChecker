@@ -1,5 +1,5 @@
-from src.Explorer import Explorer
-from src.Reporter import Reporter
+from schematicAnalyzer.Explorer import Explorer
+from schematicAnalyzer.Reporter import Reporter
 from pathlib import Path
 import logging
 from itertools import product
